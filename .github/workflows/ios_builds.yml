@@ -1,0 +1,93 @@
+name: 🍏 iOS Builds
+on:
+  workflow_call:
+  workflow_dispatch:
+
+# Global Settings
+env:
+  SCONS_FLAGS: >-
+    dev_mode=yes
+    module_text_server_fb_enabled=yes
+    debug_symbols=no
+    generate_bundle=yes
+
+jobs:
+  ios-template:
+    # From https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job#choosing-github-hosted-runners
+    runs-on: macos-26
+    name: Templates (release + debug, arm64)
+    # Dois builds completos (release e debug) + geração do ios.zip.
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      # O template ios.zip referencia MoltenVK.xcframework no projeto Xcode,
+      # então ele é obrigatório para conseguir exportar/aprovisionar o app.
+      - name: Download Vulkan SDK (MoltenVK)
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          SDK_ROOT="$RUNNER_TEMP/vulkan_sdk"
+          mkdir -p "$SDK_ROOT"
+          if curl -fsSL --retry 3 -o "$RUNNER_TEMP/vulkan_sdk.zip" \
+              "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan_sdk.zip"; then
+            unzip -q "$RUNNER_TEMP/vulkan_sdk.zip" -d "$SDK_ROOT"
+            MACOS_DIR="$(find "$SDK_ROOT" -maxdepth 4 -type d -name macOS | head -n 1)"
+            if [ -n "$MACOS_DIR" ] && [ -f "$MACOS_DIR/lib/MoltenVK.xcframework/ios-arm64/libMoltenVK.a" ]; then
+              echo "VULKAN_SDK_PATH=$(dirname "$MACOS_DIR")" >> "$GITHUB_ENV"
+              echo "MoltenVK encontrado em $(dirname "$MACOS_DIR")"
+              exit 0
+            fi
+          fi
+          echo "::warning::LunarG SDK indisponível, tentando Homebrew..."
+          if brew install molten-vk; then
+            for CAND in "$(brew --prefix molten-vk 2>/dev/null)/MoltenVK.xcframework" \
+                        "$(brew --prefix)/opt/molten-vk/Frameworks/MoltenVK.xcframework" \
+                        "/opt/homebrew/Frameworks/MoltenVK.xcframework"; do
+              if [ -f "$CAND/ios-arm64/libMoltenVK.a" ]; then
+                echo "VULKAN_SDK_PATH=$CAND" >> "$GITHUB_ENV"
+                echo "MoltenVK encontrado em $CAND"
+                exit 0
+              fi
+            done
+          fi
+          echo "::warning::MoltenVK não encontrado — ios.zip será gerado sem Vulkan e o export para dispositivo pode falhar."
+
+      - name: Restore Godot build cache
+        uses: ./.github/actions/godot-cache-restore
+        continue-on-error: true
+
+      - name: Setup Python and SCons
+        uses: ./.github/actions/godot-deps
+
+      - name: Compilation (arm64, template_release)
+        uses: ./.github/actions/godot-build
+        with:
+          scons-flags: ${{ env.SCONS_FLAGS }} vulkan_sdk_path="${{ env.VULKAN_SDK_PATH }}"
+          platform: ios
+          target: template_release
+
+      - name: Compilation (arm64, template_debug)
+        uses: ./.github/actions/godot-build
+        with:
+          scons-flags: ${{ env.SCONS_FLAGS }} vulkan_sdk_path="${{ env.VULKAN_SDK_PATH }}"
+          platform: ios
+          target: template_debug
+
+      - name: Save Godot build cache
+        uses: ./.github/actions/godot-cache-save
+        continue-on-error: true
+
+      - name: List generated templates
+        shell: bash
+        run: |
+          ls -la bin/
+          test -f bin/godot_ios.zip
+
+      - name: Upload artifact
+        uses: ./.github/actions/upload-artifact
