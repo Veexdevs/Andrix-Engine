@@ -38,5 +38,15 @@ runs:
           export BUILD_NAME="gh"
         fi
 
-        scons platform=${{ inputs.platform }} target=${{ inputs.target }} ${{ inputs.scons-flags }} "cache_path=${{ inputs.scons-cache }}" redirect_build_objects=no
-        ls -l bin/
+        set +e
+        scons platform=${{ inputs.platform }} target=${{ inputs.target }} ${{ inputs.scons-flags }} "cache_path=${{ inputs.scons-cache }}" redirect_build_objects=no > "$RUNNER_TEMP/scons.log" 2>&1
+        STATUS=$?
+        set -e
+        cat "$RUNNER_TEMP/scons.log"
+        if [ "$STATUS" -ne 0 ]; then
+          # Surface the build tail as annotations (job logs are not always reachable via API).
+          DETAIL="$(tail -n 80 "$RUNNER_TEMP/scons.log" | sed -e 's/%/%25/g' -e 's/\r//g' -e 's/$/%0A/' | tr -d '\n')"
+          echo "::error title=SCons ${{ inputs.platform }}/${{ inputs.target }} failed::${DETAIL}"
+        fi
+        ls -l bin/ || true
+        exit "$STATUS"
