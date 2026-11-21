@@ -89,9 +89,28 @@ jobs:
 
       - name: Generate Godot templates
         if: startsWith(matrix.target, 'template_')
+        shell: bash
         run: |
+          set -o pipefail
           cd platform/android/java
-          ./gradlew generateGodotTemplates
+          set +e
+          ./gradlew generateGodotTemplates 2>&1 | tee "$RUNNER_TEMP/gradle.log"
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            {
+              echo "generateGodotTemplates falhou (exit $STATUS) para target=${{ matrix.target }}."
+              echo "--- últimas linhas do log ---"
+              tail -n 60 "$RUNNER_TEMP/gradle.log"
+              echo "--- lib/libs ---"
+              find lib/libs -type f 2>/dev/null || echo "(lib/libs não existe)"
+              echo "--- bin ---"
+              ls -la ../../../bin 2>/dev/null || true
+            } > "$RUNNER_TEMP/err.txt"
+            DETAIL="$(sed -e 's/%/%25/g' -e 's/$/%0A/' "$RUNNER_TEMP/err.txt" | tr -d '\n')"
+            echo "::error title=Generate Godot templates (${{ matrix.target }})::${DETAIL}"
+            exit "$STATUS"
+          fi
           cd ../../..
           ls -l bin/
 

@@ -5,10 +5,13 @@ on:
 
 # Global Settings
 env:
+  # werror=no: o MSVC 4.7.2 trata C4723 ("potential divide by 0" em
+  # core/math/math_funcs.h, falso-positivo do ternário) como erro.
   SCONS_FLAGS: >-
     dev_mode=yes
     module_text_server_fb_enabled=yes
     debug_symbols=no
+    werror=no
   SCONS_CACHE_MSVC_CONFIG: true
   PYTHONIOENCODING: utf8
 
