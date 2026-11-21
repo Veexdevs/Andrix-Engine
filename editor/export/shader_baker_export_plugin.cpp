@@ -112,9 +112,9 @@ bool ShaderBakerExportPlugin::_begin_customize_resources(const Ref<EditorExportP
 	tasks_cancelled = false;
 
 	StringBuilder to_hash;
-	to_hash.append("[GodotVersionNumber]");
+	to_hash.append("[AndrixVersionNumber]");
 	to_hash.append(GODOT_VERSION_NUMBER);
-	to_hash.append("[GodotVersionHash]");
+	to_hash.append("[AndrixVersionHash]");
 	to_hash.append(GODOT_VERSION_HASH);
 	to_hash.append("[Renderer]");
 	to_hash.append(shader_cache_renderer_name);

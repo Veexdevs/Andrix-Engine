@@ -526,7 +526,7 @@ void Main::print_help_option(const char *p_option, const char *p_description, CL
 void Main::print_help(const char *p_binary) {
 	print_header(true);
 	print_help_copyright("Free and open source software under the terms of the MIT license.");
-	print_help_copyright("(c) 2014-present Godot Engine contributors. (c) 2007-present Juan Linietsky, Ariel Manzur.");
+	print_help_copyright("(c) 2014-present Andrix Engine contributors. (c) 2007-present Juan Linietsky, Ariel Manzur.");
 
 	print_help_title("Usage");
 	OS::get_singleton()->print("  %s \u001b[96m[options] [path to \"project.godot\" file]\u001b[0m\n", p_binary);
@@ -709,9 +709,9 @@ void Main::print_help(const char *p_binary) {
 #ifndef DISABLE_DEPRECATED
 	// Commands are long; split the description to a second line.
 	print_help_option("--convert-3to4 ", "\n", CLI_OPTION_AVAILABILITY_HIDDEN);
-	print_help_option("  [max_file_kb] [max_line_size]", "Converts project from Godot 3.x to Godot 4.x.\n", CLI_OPTION_AVAILABILITY_EDITOR);
+	print_help_option("  [max_file_kb] [max_line_size]", "Converts project from Godot 3.x to Andrix 4.x.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--validate-conversion-3to4 ", "\n", CLI_OPTION_AVAILABILITY_HIDDEN);
-	print_help_option("  [max_file_kb] [max_line_size]", "Shows what elements will be renamed when converting project from Godot 3.x to Godot 4.x.\n", CLI_OPTION_AVAILABILITY_EDITOR);
+	print_help_option("  [max_file_kb] [max_line_size]", "Shows what elements will be renamed when converting project from Godot 3.x to Andrix 4.x.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 #endif // DISABLE_DEPRECATED
 	print_help_option("--doctool [path]", "Dump the engine API reference to the given <path> (defaults to current directory) in XML format, merging if existing files are found.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--no-docbase", "Disallow dumping the base types (used with --doctool).\n", CLI_OPTION_AVAILABILITY_EDITOR);
@@ -722,8 +722,8 @@ void Main::print_help(const char *p_binary) {
 	print_help_option("--build-solutions", "Build the scripting solutions (e.g. for C# projects). Implies --editor and requires a valid project to edit.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--dump-gdextension-interface", "Generate a GDExtension header file \"gdextension_interface.h\" in the current folder. This file is the base file required to implement a GDExtension.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--dump-gdextension-interface-json", "Generate a JSON dump of the GDExtension interface named \"gdextension_interface.json\" in the current folder.\n", CLI_OPTION_AVAILABILITY_EDITOR);
-	print_help_option("--dump-extension-api", "Generate a JSON dump of the Godot API for GDExtension bindings named \"extension_api.json\" in the current folder.\n", CLI_OPTION_AVAILABILITY_EDITOR);
-	print_help_option("--dump-extension-api-with-docs", "Generate JSON dump of the Godot API like the previous option, but including documentation.\n", CLI_OPTION_AVAILABILITY_EDITOR);
+	print_help_option("--dump-extension-api", "Generate a JSON dump of the Andrix API for GDExtension bindings named \"extension_api.json\" in the current folder.\n", CLI_OPTION_AVAILABILITY_EDITOR);
+	print_help_option("--dump-extension-api-with-docs", "Generate JSON dump of the Andrix API like the previous option, but including documentation.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--validate-extension-api <path>", "Validate an extension API file dumped (with one of the two previous options) from a previous version of the engine to ensure API compatibility.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("", "If incompatibilities or errors are detected, the exit code will be non-zero.\n");
 	print_help_option("--benchmark", "Benchmark the run time and print it to console.\n", CLI_OPTION_AVAILABILITY_EDITOR);
@@ -997,8 +997,8 @@ int Main::test_entrypoint(int argc, char *argv[], bool &tests_need_run) {
 			return status;
 #else
 			ERR_PRINT(
-					"`--test` was specified on the command line, but this Godot binary was compiled without support for unit tests. Aborting.\n"
-					"To be able to run unit tests, use the `tests=yes` SCons option when compiling Godot.\n");
+					"`--test` was specified on the command line, but this Andrix binary was compiled without support for unit tests. Aborting.\n"
+					"To be able to run unit tests, use the `tests=yes` SCons option when compiling Andrix.\n");
 			return EXIT_FAILURE;
 #endif
 		}
@@ -1033,7 +1033,7 @@ int Main::test_entrypoint(int argc, char *argv[], bool &tests_need_run) {
  */
 
 Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_phase) {
-	GodotProfileZone("setup");
+	AndrixProfileZone("setup");
 	Thread::make_main_thread();
 	set_current_thread_safe_for_nodes(true);
 
@@ -1167,7 +1167,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 
 #ifdef MACOS_ENABLED
 		// Ignore the process serial number argument passed by macOS Gatekeeper.
-		// Otherwise, Godot would try to open a non-existent project on the first start and abort.
+		// Otherwise, Andrix would try to open a non-existent project on the first start and abort.
 		if (arg.begins_with("-psn_")) {
 			I = N;
 			continue;
@@ -1548,8 +1548,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			}
 #else
 			ERR_PRINT(
-					"`--remote-fs` was specified on the command line, but this Godot binary was compiled without debug. Aborting.\n"
-					"To be able to use it, use the `target=template_debug` SCons option when compiling Godot.\n");
+					"`--remote-fs` was specified on the command line, but this Andrix binary was compiled without debug. Aborting.\n"
+					"To be able to use it, use the `target=template_debug` SCons option when compiling Andrix.\n");
 #endif // defined(DEBUG_ENABLED) || defined (TOOLS_ENABLED)
 		} else if (arg == "--remote-fs-password") { // remote filesystem password
 
@@ -1563,8 +1563,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			}
 #else
 			ERR_PRINT(
-					"`--remote-fs-password` was specified on the command line, but this Godot binary was compiled without debug. Aborting.\n"
-					"To be able to use it, use the `target=template_debug` SCons option when compiling Godot.\n");
+					"`--remote-fs-password` was specified on the command line, but this Andrix binary was compiled without debug. Aborting.\n"
+					"To be able to use it, use the `target=template_debug` SCons option when compiling Andrix.\n");
 			goto error;
 #endif // defined(DEBUG_ENABLED) || defined (TOOLS_ENABLED)
 		} else if (arg == "--render-thread") { // render thread mode
@@ -1574,7 +1574,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 					separate_thread_render = 0;
 #ifndef DISABLE_DEPRECATED
 				} else if (N->get() == "unsafe") {
-					OS::get_singleton()->print("The --render-thread unsafe option is unsupported in Godot 4 and will be removed.\n");
+					OS::get_singleton()->print("The --render-thread unsafe option is unsupported in Andrix and will be removed.\n");
 					separate_thread_render = 0;
 #endif
 				} else if (N->get() == "separate") {
@@ -1780,8 +1780,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			}
 #else
 			ERR_PRINT(
-					"`--path` was specified on the command line, but this Godot binary was compiled without support for path overrides. Aborting.\n"
-					"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Godot.\n");
+					"`--path` was specified on the command line, but this Andrix binary was compiled without support for path overrides. Aborting.\n"
+					"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Andrix.\n");
 			goto error;
 #endif // defined(OVERRIDE_PATH_ENABLED)
 		} else if (arg == "--quit") { // Auto quit at the end of the first main loop iteration
@@ -1817,8 +1817,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 #endif
 #else
 			ERR_PRINT(
-					"`project.godot` path was specified on the command line, but this Godot binary was compiled without support for path overrides. Aborting.\n"
-					"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Godot.\n");
+					"`project.godot` path was specified on the command line, but this Andrix binary was compiled without support for path overrides. Aborting.\n"
+					"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Andrix.\n");
 			goto error;
 #endif // defined(OVERRIDE_PATH_ENABLED)
 		} else if (arg == "-b" || arg == "--breakpoints") { // add breakpoints
@@ -1875,8 +1875,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				if (main_pack_fa.is_valid()) {
 					if (main_pack_fa->get_access_type() != FileAccess::ACCESS_RESOURCES) {
 						ERR_PRINT(
-								"--main-pack is attempting to load from outside of the executable, but this Godot binary was compiled without support for path overrides. Aborting.\n"
-								"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Godot.\n");
+								"--main-pack is attempting to load from outside of the executable, but this Andrix binary was compiled without support for path overrides. Aborting.\n"
+								"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Andrix.\n");
 						goto error;
 					}
 				} else {
@@ -1890,8 +1890,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			}
 #else
 			ERR_PRINT(
-					"`--main-pack` was specified on the command line, but this Godot binary was compiled without support for path overrides. Aborting.\n"
-					"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Godot.\n");
+					"`--main-pack` was specified on the command line, but this Andrix binary was compiled without support for path overrides. Aborting.\n"
+					"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Andrix.\n");
 			goto error;
 #endif // defined(OVERRIDE_PATH_ENABLED) || defined(WEB_ENABLED) || defined(ANDROID_ENABLED)
 
@@ -1936,8 +1936,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			}
 #else
 			ERR_PRINT(
-					"`--remote-debug` was specified on the command line, but this Godot binary was compiled without debug. Aborting.\n"
-					"To be able to use it, use the `target=template_debug` SCons option when compiling Godot.\n");
+					"`--remote-debug` was specified on the command line, but this Andrix binary was compiled without debug. Aborting.\n"
+					"To be able to use it, use the `target=template_debug` SCons option when compiling Andrix.\n");
 			goto error;
 #endif // defined(DEBUG_ENABLED) || defined (TOOLS_ENABLED)
 		} else if (arg == "--editor-pid") { // not exposed to user
@@ -2118,9 +2118,9 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		String exec_basename = exec_path.get_file().get_basename();
 
 		if (FileAccess::exists(old_cwd.path_join(exec_basename + ".pck"))) {
-			error_msg += "\"" + exec_basename + ".pck\" was found in the current working directory. To be able to load a project from the CWD, use the `disable_path_overrides=no` SCons option when compiling Godot.\n";
+			error_msg += "\"" + exec_basename + ".pck\" was found in the current working directory. To be able to load a project from the CWD, use the `disable_path_overrides=no` SCons option when compiling Andrix.\n";
 		} else if (FileAccess::exists(old_cwd.path_join("project.godot"))) {
-			error_msg += "\"project.godot\" was found in the current working directory. To be able to load a project from the CWD, use the `disable_path_overrides=no` SCons option when compiling Godot.\n";
+			error_msg += "\"project.godot\" was found in the current working directory. To be able to load a project from the CWD, use the `disable_path_overrides=no` SCons option when compiling Andrix.\n";
 		} else {
 			error_msg += "If you've renamed the executable, the associated .pck file should also be renamed to match the executable's name (without the extension).\n";
 		}
@@ -2802,7 +2802,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	GLOBAL_DEF_RST_NOVAL("audio/driver/driver", AudioDriverManager::get_driver(0)->get_name());
 	if (audio_driver.is_empty()) { // Specified in project.godot.
 		if (project_manager) {
-			// The project manager doesn't need to play sound (TTS audio output is not emitted by Godot, but by the system itself).
+			// The project manager doesn't need to play sound (TTS audio output is not emitted by Andrix, but by the system itself).
 			// Disable audio output so it doesn't appear in the list of applications outputting sound in the OS.
 			// On macOS, this also prevents the project manager from inhibiting suspend.
 			audio_driver = "Dummy";
@@ -3031,7 +3031,7 @@ Error _parse_resource_dummy(void *p_data, VariantParser::Stream *p_stream, Ref<R
 }
 
 Error Main::setup2(bool p_show_boot_logo) {
-	GodotProfileZone("setup2");
+	AndrixProfileZone("setup2");
 	OS::get_singleton()->benchmark_begin_measure("Startup", "Main::Setup2");
 
 	Thread::make_main_thread(); // Make whatever thread call this the main thread.
@@ -3919,7 +3919,7 @@ Error Main::setup2(bool p_show_boot_logo) {
 }
 
 void Main::setup_boot_logo() {
-	GodotProfileZone("setup_boot_logo");
+	AndrixProfileZone("setup_boot_logo");
 	MAIN_PRINT("Main: Load Boot Image");
 
 #if !defined(TOOLS_ENABLED) && defined(WEB_ENABLED)
@@ -4011,7 +4011,7 @@ static MainTimerSync main_timer_sync;
 // and should move on to `OS::run`, and EXIT_FAILURE otherwise for
 // an early exit with that error code.
 int Main::start() {
-	GodotProfileZone("start");
+	AndrixProfileZone("start");
 	OS::get_singleton()->benchmark_begin_measure("Startup", "Main::Start");
 
 	ERR_FAIL_COND_V(!_start_success, EXIT_FAILURE);
@@ -4083,8 +4083,8 @@ int Main::start() {
 			}
 #else
 			ERR_PRINT(
-					"`--scene` was specified on the command line, but this Godot binary was compiled without support for path overrides. Aborting.\n"
-					"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Godot.\n");
+					"`--scene` was specified on the command line, but this Andrix binary was compiled without support for path overrides. Aborting.\n"
+					"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Andrix.\n");
 			return EXIT_FAILURE;
 #endif // defined(OVERRIDE_PATH_ENABLED)
 		} else if (E->get().length() && E->get()[0] != '-' && positional_arg.is_empty() && game_path.is_empty()) {
@@ -4097,7 +4097,7 @@ int Main::start() {
 					scene_path.ends_with(".res") ||
 					scene_path.ends_with(".tres")) {
 				// Only consider the positional argument to be a scene path if it ends with
-				// a file extension associated with Godot scenes. This makes it possible
+				// a file extension associated with Andrix scenes. This makes it possible
 				// for projects to parse command-line arguments for custom CLI arguments
 				// or other file extensions without trouble. This can be used to implement
 				// "drag-and-drop onto executable" logic, which can prove helpful
@@ -4106,8 +4106,8 @@ int Main::start() {
 				game_path = scene_path;
 #else
 				ERR_PRINT(
-						"Scene path was specified on the command line, but this Godot binary was compiled without support for path overrides. Aborting.\n"
-						"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Godot.\n");
+						"Scene path was specified on the command line, but this Andrix binary was compiled without support for path overrides. Aborting.\n"
+						"To be able to use it, use the `disable_path_overrides=no` SCons option when compiling Andrix.\n");
 				return EXIT_FAILURE;
 #endif // defined(OVERRIDE_PATH_ENABLED)
 			}
@@ -4199,7 +4199,7 @@ int Main::start() {
 			// Ensure that doctool is running in the root dir, but only if
 			// user did not manually specify a path as argument.
 			if (doc_tool_implicit_cwd) {
-				ERR_FAIL_COND_V_MSG(!da->dir_exists("doc"), EXIT_FAILURE, "--doctool must be run from the Godot repository's root folder, or specify a path that points there.");
+				ERR_FAIL_COND_V_MSG(!da->dir_exists("doc"), EXIT_FAILURE, "--doctool must be run from the Andrix repository's root folder, or specify a path that points there.");
 			}
 		}
 
@@ -4247,7 +4247,7 @@ int Main::start() {
 			}
 		}
 
-		// For GDExtension docs, use a path that is compatible with Godot modules.
+		// For GDExtension docs, use a path that is compatible with Andrix modules.
 		String index_path = gdextension_docs ? doc_tool_path.path_join("doc_classes") : doc_tool_path.path_join("doc/classes");
 		// Create the main documentation directory if it doesn't exist
 		Ref<DirAccess> da = DirAccess::create_for_path(index_path);
@@ -4919,8 +4919,8 @@ static uint64_t navigation_process_max = 0;
 // will terminate the program. In case of failure, the OS exit code needs
 // to be set explicitly here (defaults to EXIT_SUCCESS).
 bool Main::iteration() {
-	GodotProfileZone("Main::iteration");
-	GodotProfileZoneGroupedFirst(_profile_zone, "prepare");
+	AndrixProfileZone("Main::iteration");
+	AndrixProfileZoneGroupedFirst(_profile_zone, "prepare");
 	iterating++;
 
 	const uint64_t ticks = OS::get_singleton()->get_ticks_usec();
@@ -4962,14 +4962,14 @@ bool Main::iteration() {
 
 	// process all our active interfaces
 #ifndef XR_DISABLED
-	GodotProfileZoneGrouped(_profile_zone, "xr_server->_process");
+	AndrixProfileZoneGrouped(_profile_zone, "xr_server->_process");
 	XRServer::get_singleton()->_process();
 #endif // XR_DISABLED
 
-	GodotProfileZoneGrouped(_profile_zone, "physics");
+	AndrixProfileZoneGrouped(_profile_zone, "physics");
 	for (int iters = 0; iters < advance.physics_steps; ++iters) {
-		GodotProfileZone("Physics Step");
-		GodotProfileZoneGroupedFirst(_physics_zone, "setup");
+		AndrixProfileZone("Physics Step");
+		AndrixProfileZoneGroupedFirst(_physics_zone, "setup");
 		if (Input::get_singleton()->is_agile_input_event_flushing()) {
 			Input::get_singleton()->flush_buffered_events();
 		}
@@ -4982,22 +4982,22 @@ bool Main::iteration() {
 		// Prepare the fixed timestep interpolated nodes BEFORE they are updated
 		// by the physics server, otherwise the current and previous transforms
 		// may be the same, and no interpolation takes place.
-		GodotProfileZoneGrouped(_physics_zone, "main loop iteration prepare");
+		AndrixProfileZoneGrouped(_physics_zone, "main loop iteration prepare");
 		OS::get_singleton()->get_main_loop()->iteration_prepare();
 
 #ifndef PHYSICS_3D_DISABLED
-		GodotProfileZoneGrouped(_physics_zone, "PhysicsServer3D::sync");
+		AndrixProfileZoneGrouped(_physics_zone, "PhysicsServer3D::sync");
 		PhysicsServer3D::get_singleton()->sync();
 		PhysicsServer3D::get_singleton()->flush_queries();
 #endif // PHYSICS_3D_DISABLED
 
 #ifndef PHYSICS_2D_DISABLED
-		GodotProfileZoneGrouped(_physics_zone, "PhysicsServer2D::sync");
+		AndrixProfileZoneGrouped(_physics_zone, "PhysicsServer2D::sync");
 		PhysicsServer2D::get_singleton()->sync();
 		PhysicsServer2D::get_singleton()->flush_queries();
 #endif // PHYSICS_2D_DISABLED
 
-		GodotProfileZoneGrouped(_physics_zone, "physics_process");
+		AndrixProfileZoneGrouped(_physics_zone, "physics_process");
 		if (OS::get_singleton()->get_main_loop()->physics_process(physics_step * time_scale)) {
 #ifndef PHYSICS_3D_DISABLED
 			PhysicsServer3D::get_singleton()->end_sync();
@@ -5015,11 +5015,11 @@ bool Main::iteration() {
 		uint64_t navigation_begin = OS::get_singleton()->get_ticks_usec();
 
 #ifndef NAVIGATION_2D_DISABLED
-		GodotProfileZoneGrouped(_profile_zone, "NavigationServer2D::physics_process");
+		AndrixProfileZoneGrouped(_profile_zone, "NavigationServer2D::physics_process");
 		NavigationServer2D::get_singleton()->physics_process(physics_step * time_scale);
 #endif // NAVIGATION_2D_DISABLED
 #ifndef NAVIGATION_3D_DISABLED
-		GodotProfileZoneGrouped(_profile_zone, "NavigationServer3D::physics_process");
+		AndrixProfileZoneGrouped(_profile_zone, "NavigationServer3D::physics_process");
 		NavigationServer3D::get_singleton()->physics_process(physics_step * time_scale);
 #endif // NAVIGATION_3D_DISABLED
 
@@ -5030,20 +5030,20 @@ bool Main::iteration() {
 #endif // !defined(NAVIGATION_2D_DISABLED) || !defined(NAVIGATION_3D_DISABLED)
 
 #ifndef PHYSICS_3D_DISABLED
-		GodotProfileZoneGrouped(_profile_zone, "3D physics");
+		AndrixProfileZoneGrouped(_profile_zone, "3D physics");
 		PhysicsServer3D::get_singleton()->end_sync();
 		PhysicsServer3D::get_singleton()->step(physics_step * time_scale);
 #endif // PHYSICS_3D_DISABLED
 
 #ifndef PHYSICS_2D_DISABLED
-		GodotProfileZoneGrouped(_profile_zone, "2D physics");
+		AndrixProfileZoneGrouped(_profile_zone, "2D physics");
 		PhysicsServer2D::get_singleton()->end_sync();
 		PhysicsServer2D::get_singleton()->step(physics_step * time_scale);
 #endif // PHYSICS_2D_DISABLED
 
 		message_queue->flush();
 
-		GodotProfileZoneGrouped(_profile_zone, "main loop iteration end");
+		AndrixProfileZoneGrouped(_profile_zone, "main loop iteration end");
 		OS::get_singleton()->get_main_loop()->iteration_end();
 
 		physics_process_ticks = MAX(physics_process_ticks, OS::get_singleton()->get_ticks_usec() - physics_begin); // keep the largest one for reference
@@ -5058,25 +5058,25 @@ bool Main::iteration() {
 
 	uint64_t process_begin = OS::get_singleton()->get_ticks_usec();
 
-	GodotProfileZoneGrouped(_profile_zone, "process");
+	AndrixProfileZoneGrouped(_profile_zone, "process");
 	if (OS::get_singleton()->get_main_loop()->process(process_step * time_scale)) {
 		exit = true;
 	}
 	message_queue->flush();
 
 #ifndef NAVIGATION_2D_DISABLED
-	GodotProfileZoneGrouped(_profile_zone, "process 2D navigation");
+	AndrixProfileZoneGrouped(_profile_zone, "process 2D navigation");
 	NavigationServer2D::get_singleton()->process(process_step * time_scale);
 #endif // NAVIGATION_2D_DISABLED
 #ifndef NAVIGATION_3D_DISABLED
-	GodotProfileZoneGrouped(_profile_zone, "process 3D navigation");
+	AndrixProfileZoneGrouped(_profile_zone, "process 3D navigation");
 	NavigationServer3D::get_singleton()->process(process_step * time_scale);
 #endif // NAVIGATION_3D_DISABLED
 
-	GodotProfileZoneGrouped(_profile_zone, "RenderingServer::sync");
+	AndrixProfileZoneGrouped(_profile_zone, "RenderingServer::sync");
 	RenderingServer::get_singleton()->sync(); //sync if still drawing from previous frames.
 
-	GodotProfileZoneGrouped(_profile_zone, "RenderingServer::draw");
+	AndrixProfileZoneGrouped(_profile_zone, "RenderingServer::draw");
 	const bool has_pending_resources_for_processing = RD::get_singleton() && RD::get_singleton()->has_pending_resources_for_processing();
 	bool wants_present = (DisplayServer::get_singleton()->can_any_window_draw() ||
 								 DisplayServer::get_singleton()->has_additional_outputs()) &&
@@ -5100,15 +5100,15 @@ bool Main::iteration() {
 	process_max = MAX(process_ticks, process_max);
 	uint64_t frame_time = OS::get_singleton()->get_ticks_usec() - ticks;
 
-	GodotProfileZoneGrouped(_profile_zone, "GDExtensionManager::frame");
+	AndrixProfileZoneGrouped(_profile_zone, "GDExtensionManager::frame");
 	GDExtensionManager::get_singleton()->frame();
 
-	GodotProfileZoneGrouped(_profile_zone, "ScriptServer::frame");
+	AndrixProfileZoneGrouped(_profile_zone, "ScriptServer::frame");
 	for (int i = 0; i < ScriptServer::get_language_count(); i++) {
 		ScriptServer::get_language(i)->frame();
 	}
 
-	GodotProfileZoneGrouped(_profile_zone, "AudioServer::update");
+	AndrixProfileZoneGrouped(_profile_zone, "AudioServer::update");
 	AudioServer::get_singleton()->update();
 
 	if (EngineDebugger::is_active()) {
@@ -5147,7 +5147,7 @@ bool Main::iteration() {
 	iterating--;
 
 	if (movie_writer) {
-		GodotProfileZoneGrouped(_profile_zone, "movie_writer->add_frame");
+		AndrixProfileZoneGrouped(_profile_zone, "movie_writer->add_frame");
 		movie_writer->add_frame();
 	}
 
@@ -5174,7 +5174,7 @@ bool Main::iteration() {
 	SceneTree *scene_tree = SceneTree::get_singleton();
 	bool wake_for_events = scene_tree && scene_tree->is_accessibility_enabled();
 
-	GodotProfileZoneGrouped(_profile_zone, "OS::add_frame_delay");
+	AndrixProfileZoneGrouped(_profile_zone, "OS::add_frame_delay");
 	OS::get_singleton()->add_frame_delay(DisplayServer::get_singleton()->window_can_draw(), wake_for_events);
 
 #ifdef TOOLS_ENABLED
@@ -5216,7 +5216,7 @@ void Main::force_redraw() {
 void Main::cleanup(bool p_force) {
 	Thread::make_main_thread();
 
-	GodotProfileZone("cleanup");
+	AndrixProfileZone("cleanup");
 	OS::get_singleton()->benchmark_begin_measure("Shutdown", "Main::Cleanup");
 	if (!p_force) {
 		ERR_FAIL_COND(!_start_success);
