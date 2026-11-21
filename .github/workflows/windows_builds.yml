@@ -128,8 +128,14 @@ jobs:
       - name: Prepare artifact
         if: matrix.compiler == 'msvc'
         run: |
+          Write-Host "::notice title=step::prepare artifact"
           Remove-Item bin/build_deps -Recurse -Force -ErrorAction SilentlyContinue
           Remove-Item bin/* -Include *.exp,*.lib,*.pdb -Force
+          Write-Host "::notice title=step::prepare artifact ok"
+
+      - name: Marker before upload
+        if: matrix.compiler == 'msvc'
+        run: Write-Host "::notice title=step::upload artifact"
 
       - name: Upload artifact
         if: matrix.compiler == 'msvc'
@@ -138,7 +144,48 @@ jobs:
           name: ${{ matrix.cache-name }}
 
       - name: Unit tests
+        shell: bash
         run: |
-          ${{ matrix.bin }} --version
-          ${{ matrix.bin }} --help
-          ${{ matrix.bin }} --test --force-colors
+          set +e
+          STATUS=0
+          SV=0
+          SH=0
+          ST=0
+          {
+            echo "== --version =="
+            ${{ matrix.bin }} --version || { SV=1; STATUS=1; }
+            echo "== --help =="
+            ${{ matrix.bin }} --help || { SH=1; STATUS=1; }
+            echo "== --test =="
+            ${{ matrix.bin }} --test --force-colors || { ST=1; STATUS=1; }
+          } > unit_tests.log 2>&1
+          set -e
+          cat unit_tests.log || true
+          echo "::notice title=unit substatuses::version=$SV help=$SH test=$ST"
+          if [ "$STATUS" -ne 0 ]; then
+            sed 's/\x1b\[[0-9;]*m//g' unit_tests.log > unit_clean.log || cp unit_tests.log unit_clean.log
+            {
+              echo "--- substatuses: version=$SV help=$SH test=$ST ---"
+              echo "--- first 30 lines ---"
+              head -n 30 unit_clean.log
+              echo "--- grep hits (ERROR/FAILED/doctest/leak) ---"
+              grep -E "ERROR:|FATAL:|FAILED|failed|doctest|SUMMARY|passed|Leak|leaked|CRASH|Segmentation|TEST CASE" unit_clean.log | head -n 40
+              echo "--- last 60 lines ---"
+              tail -n 60 unit_clean.log
+            } > unit_err.txt
+            DETAIL="$(sed -e 's/%/%25/g' -e 's/\r//g' -e 's/$/%0A/' unit_err.txt | tr -d '\n')"
+            echo "::error title=Unit tests failed (${{ matrix.name }})::${DETAIL}"
+            exit "$STATUS"
+          fi
+
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f scons_ci.log ]; then
+            echo "::error title=Windows failure::scons RODOU (ver tail na anotação 'SCons ... failed' ou no step de build). Últimas linhas:"
+            tail -n 30 scons_ci.log | sed -e 's/%/%25/g' -e 's/\r//g' -e 's/$/%0A/' | tr -d '\n' | sed 's/^/::error /'
+          else
+            echo "::error title=Windows failure::scons NUNCA RODOU — falha em passo anterior ao build (checkout/cache/Python/SDK downloads)."
+            ls -la || true
+          fi

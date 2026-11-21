@@ -293,7 +293,7 @@ void AndrixPlugin::_ai_request_done(int p_result, int p_code, const PackedString
 		return;
 	}
 
-	String raw = p_body.get_string_from_utf8();
+	String raw = String::utf8((const char *)p_body.ptr(), (int)p_body.size());
 	Variant parsed = JSON::parse_string(raw);
 	if (parsed.get_type() != Variant::DICTIONARY) {
 		ai_status->set_text(TTRC("Resposta inválida."));
@@ -386,7 +386,7 @@ String AndrixPlugin::_gh_project_dir() const {
 
 bool AndrixPlugin::_gh_is_repo() const {
 	String dir = _gh_project_dir();
-	return FileAccess::file_exists(dir + "/.git/config") || DirAccess::dir_exists_absolute(dir + "/.git");
+	return FileAccess::exists(dir + "/.git/config") || DirAccess::dir_exists_absolute(dir + "/.git");
 }
 
 void AndrixPlugin::_gh_append(const String &p_bbcode) {

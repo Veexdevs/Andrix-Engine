@@ -94,8 +94,19 @@ jobs:
           set -o pipefail
           cd platform/android/java
           set +e
-          ./gradlew generateGodotTemplates 2>&1 | tee "$RUNNER_TEMP/gradle.log"
-          STATUS=${PIPESTATUS[0]}
+          for ATTEMPT in 1 2 3; do
+            ./gradlew generateGodotTemplates 2>&1 | tee "$RUNNER_TEMP/gradle.log"
+            STATUS=${PIPESTATUS[0]}
+            if [ "$STATUS" -eq 0 ]; then
+              break
+            fi
+            if [ "$ATTEMPT" -lt 3 ] && grep -qE "Could not resolve|Could not GET|plugins.gradle.org|status code: 429|Connection reset|UnknownHostException|Could not download" "$RUNNER_TEMP/gradle.log"; then
+              echo "::warning title=Gradle retry::tentativa $ATTEMPT falhou com erro de rede na resolução de dependências — nova tentativa em 30 s"
+              sleep 30
+              continue
+            fi
+            break
+          done
           set -e
           if [ "$STATUS" -ne 0 ]; then
             {
@@ -118,9 +129,30 @@ jobs:
         if: matrix.target == 'editor'
         run: |
           cd platform/android/java
-          ./gradlew generateGodotEditor
-          ./gradlew generateGodotHorizonOSEditor
-          ./gradlew generateGodotPicoOSEditor
+          set +e
+          for ATTEMPT in 1 2 3; do
+            { ./gradlew generateGodotEditor && ./gradlew generateGodotHorizonOSEditor && ./gradlew generateGodotPicoOSEditor; } 2>&1 | tee "$RUNNER_TEMP/gradle.log"
+            STATUS=${PIPESTATUS[0]}
+            if [ "$STATUS" -eq 0 ]; then
+              break
+            fi
+            if [ "$ATTEMPT" -lt 3 ] && grep -qE "Could not resolve|Could not GET|plugins.gradle.org|status code: 429|Connection reset|UnknownHostException|Could not download" "$RUNNER_TEMP/gradle.log"; then
+              echo "::warning title=Gradle retry::tentativa $ATTEMPT falhou com erro de rede — nova tentativa em 30 s"
+              sleep 30
+              continue
+            fi
+            break
+          done
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            {
+              echo "generateGodotEditor falhou (exit $STATUS) para target=${{ matrix.target }}."
+              tail -n 60 "$RUNNER_TEMP/gradle.log"
+            } > "$RUNNER_TEMP/err_editor.txt"
+            DETAIL="$(sed -e 's/%/%25/g' -e 's/$/%0A/' "$RUNNER_TEMP/err_editor.txt" | tr -d '\n')"
+            echo "::error title=Generate Godot editor (${{ matrix.target }})::${DETAIL}"
+            exit "$STATUS"
+          fi
           cd ../../..
           ls -l bin/android_editor_builds/
 
