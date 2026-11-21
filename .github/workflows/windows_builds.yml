@@ -163,14 +163,18 @@ jobs:
           cat unit_tests.log || true
           echo "::notice title=unit substatuses::version=$SV help=$SH test=$ST"
           if [ "$STATUS" -ne 0 ]; then
-            grep -E "ERROR:|FATAL:|FAILED|failed|doctest|SUMMARY|Assertion|Leak|leaked|CRASH|Segmentation|passed" unit_tests.log > unit_hits.txt || true
-            tail -c 4000 unit_tests.log >> unit_hits.txt || true
-            n=0
-            while IFS= read -r line || [ -n "$line" ]; do
-              n=$((n + 1))
-              if [ "$n" -gt 40 ]; then break; fi
-              echo "::error unit: $line"
-            done < unit_hits.txt
+            sed 's/\x1b\[[0-9;]*m//g' unit_tests.log > unit_clean.log || cp unit_tests.log unit_clean.log
+            {
+              echo "--- substatuses: version=$SV help=$SH test=$ST ---"
+              echo "--- first 30 lines ---"
+              head -n 30 unit_clean.log
+              echo "--- grep hits (ERROR/FAILED/doctest/leak) ---"
+              grep -E "ERROR:|FATAL:|FAILED|failed|doctest|SUMMARY|passed|Leak|leaked|CRASH|Segmentation|TEST CASE" unit_clean.log | head -n 40
+              echo "--- last 60 lines ---"
+              tail -n 60 unit_clean.log
+            } > unit_err.txt
+            DETAIL="$(sed -e 's/%/%25/g' -e 's/\r//g' -e 's/$/%0A/' unit_err.txt | tr -d '\n')"
+            echo "::error title=Unit tests failed (${{ matrix.name }})::${DETAIL}"
             exit "$STATUS"
           fi
 
