@@ -142,3 +142,15 @@ jobs:
           ${{ matrix.bin }} --version
           ${{ matrix.bin }} --help
           ${{ matrix.bin }} --test --force-colors
+
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f scons_ci.log ]; then
+            echo "::error title=Windows failure::scons RODOU (ver tail na anotação 'SCons ... failed' ou no step de build). Últimas linhas:"
+            tail -n 30 scons_ci.log | sed -e 's/%/%25/g' -e 's/\r//g' -e 's/$/%0A/' | tr -d '\n' | sed 's/^/::error /'
+          else
+            echo "::error title=Windows failure::scons NUNCA RODOU — falha em passo anterior ao build (checkout/cache/Python/SDK downloads)."
+            ls -la || true
+          fi
