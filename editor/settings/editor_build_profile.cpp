@@ -717,7 +717,7 @@ EditorBuildProfile::EditorBuildProfile() {
 	build_option_settings.insert(BUILD_OPTION_OPENGL, settings_opengl);
 
 	HashMap<String, LocalVector<Variant>> settings_phy_godot_3d = {
-		{ "physics/3d/physics_engine", { "DEFAULT", "AndrixPhysics3D" } },
+		{ "physics/3d/physics_engine", { "DEFAULT", "GodotPhysics3D" } },
 	};
 	build_option_settings.insert(BUILD_OPTION_PHYSICS_GODOT_3D, settings_phy_godot_3d);
 
