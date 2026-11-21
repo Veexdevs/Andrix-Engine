@@ -41,7 +41,7 @@ public:
 		FORMAT_BASIC,
 		// v4.3.2.stable.mono [HASH]
 		FORMAT_WITH_BUILD,
-		// Godot Engine v4.3.2.stable.mono.official [HASH]
+		// Andrix Engine v4.3.2.stable.mono.official [HASH]
 		FORMAT_WITH_NAME_AND_BUILD,
 	};
 

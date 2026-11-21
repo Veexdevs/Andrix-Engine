@@ -6,6 +6,35 @@
 
 ---
 
+## ✨ Novidades do Andrix Engine
+
+- **Identidade Andrix:** ícones, splash e todos os textos visíveis do editor usam a marca **Andrix** (logo do robô + engrenagem, com fundo transparente). A paleta de cores continua o **cinza padrão** do Godot. Os créditos e a licença MIT do Godot Engine são mantidos (exigência da licença).
+- **Dock embutido "Andrix"** (painel inferior, abas **IA** e **GitHub**):
+  - **IA — chat + agente de código (vibe coding):** conecta na OpenRouter com o modelo padrão `openai/gpt-5-mini` (o mais próximo de “gpt mini 5”; troque no campo *Modelo*). Quando a resposta traz um bloco ```` ``` ````, o botão **Aplicar código** grava o script no caminho indicado (padrão `res://andrix_snippet.gd`) e atualiza o FileSystem.
+  - **GitHub — projeto direto do repositório:** cole a URL → **Importar** clona para `~/AndrixProjects/<nome>` **sem escolher pastas** → **Abrir clonado** reinicia o editor no projeto. **Puxar** / **Empurrar** manuais e **Auto-sync ao salvar** (commit + push automáticos). Se o projeto atual já é um repositório, o editor **puxa atualizações ao abrir**.
+- **Layout inspirado no mockup:** Propriedades (Inspetor) abre à **esquerda**, Cena/Explorador à **direita** no layout padrão.
+- **Splash do editor** com a logo Andrix na inicialização.
+
+### 🔐 Chave da API (importante)
+
+A chave da API **nunca é gravada neste repositório**. Configure-a em uma destas formas:
+
+1. *Editor Settings* → `andrix_ai/api_key` (campo oculto), ou
+2. variável de ambiente **`OPENROUTER_API_KEY`** antes de abrir o editor.
+
+> ⚠️ Se uma chave foi publicada em chat, issue ou qualquer lugar público, **gire (regenere) essa chave no OpenRouter** antes de usá-la de verdade.
+
+### 🗺️ Roadmap (honesto — não incluído nesta versão)
+
+| Pedido | Status | Motivo |
+|---|---|---|
+| Trocar GDScript por **Python** | ❌ roadmap | Exige embutir o CPython no runtime (ou um GDExtension como godot-python) — é um porte de engine, não uma troca de texto. |
+| Performance “pesada igual **GTA 6**” | ❌ roadmap | O peso de um jogo pesado vem do projeto (draw calls, física, assets). Nenhuma engine open-source roda “GTA 6” por mágica; otimizações reais são caso a caso via profiling. |
+| IA funcionando **dentro do jogo** (em runtime) | ❌ roadmap | O dock atual é ferramenta de editor; expor IA ao jogo exportado exige um plugin de runtime separado. |
+| Rebrand + logo + dock IA/GitHub + layout | ✅ nesta versão | |
+
+---
+
 ## 📦 Builds automáticos (GitHub Actions)
 
 O workflow [`andrix-builds.yml`](.github/workflows/andrix-builds.yml) roda a cada push no `main`, em cada Pull Request ou manualmente (**Actions → Andrix Builds → Run workflow**).

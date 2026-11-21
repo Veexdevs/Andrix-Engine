@@ -33,7 +33,6 @@ runs:
         path: ${{ inputs.scons-cache }}
         key: ${{ inputs.cache-name }}|${{ github.ref_name }}|${{ github.sha }}
         restore-keys: ${{ inputs.cache-name }}|${{ github.ref_name }}
-        restore-keys: ${{ inputs.cache-name }}|${{ github.ref_name }}
 
     - name: Store unix timestamp
       shell: sh
