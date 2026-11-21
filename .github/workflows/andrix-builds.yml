@@ -1,0 +1,153 @@
+name: 📦 Andrix Builds (APK · IPA · EXE)
+
+# Orquestrador do Andrix Engine: compila o Godot para Android (APK),
+# Windows (EXE) e iOS (templates + .ipa assinado quando houver segredos).
+# Substitui o runner.yml upstream para focar nos alvos pedidos.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}|${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  android-build:
+    name: 🤖 Android (APK)
+    uses: ./.github/workflows/android_builds.yml
+    secrets:
+      SERVICE_ACCOUNT_KEY: ${{ secrets.SERVICE_ACCOUNT_KEY }}
+
+  windows-build:
+    name: 🏁 Windows (EXE)
+    uses: ./.github/workflows/windows_builds.yml
+
+  ios-build:
+    name: 🍏 iOS (templates)
+    uses: ./.github/workflows/ios_builds.yml
+
+  ios_signing_check:
+    name: 🔐 Verificar segredos iOS
+    runs-on: ubuntu-24.04
+    outputs:
+      has_signing: ${{ steps.check.outputs.has }}
+    steps:
+      - name: Check signing secrets
+        id: check
+        env:
+          P12: ${{ secrets.IOS_CERTIFICATE_P12 }}
+          PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+        run: |
+          if [ -n "$P12" ] && [ -n "$PROFILE" ]; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=iOS .ipa::Segredos de assinatura iOS não configurados (IOS_CERTIFICATE_P12 / IOS_PROVISIONING_PROFILE). A exportação do .ipa assinado foi pulada. Consulte o README para configurar."
+          fi
+
+  ipa-export:
+    name: 🍏 iOS (.ipa assinado)
+    needs: [ios-build, ios_signing_check]
+    if: needs.ios_signing_check.outputs.has_signing == 'true'
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download iOS templates (ios.zip)
+        uses: ./.github/actions/download-artifact
+        with:
+          name: ios-template
+          path: ios_templates
+
+      - name: Download Godot editor (macOS)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot_macos.zip" \
+            "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_macos.universal.zip"
+          unzip -q "$RUNNER_TEMP/godot_macos.zip" -d "$RUNNER_TEMP/godot"
+          chmod +x "$RUNNER_TEMP/godot/Godot.app/Contents/MacOS/Godot"
+          "$RUNNER_TEMP/godot/Godot.app/Contents/MacOS/Godot" --version
+
+      - name: Install export template (ios.zip)
+        shell: bash
+        run: |
+          set -euo pipefail
+          TPL_DIR="$HOME/Library/Application Support/Godot/export_templates/4.7.2.stable"
+          mkdir -p "$TPL_DIR"
+          ls -la ios_templates
+          test -f ios_templates/godot_ios.zip
+          cp ios_templates/godot_ios.zip "$TPL_DIR/ios.zip"
+          ls -la "$TPL_DIR"
+
+      - name: Import Apple certificate (P12)
+        shell: bash
+        env:
+          IOS_CERTIFICATE_P12: ${{ secrets.IOS_CERTIFICATE_P12 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/andrix.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          P12_PASSWORD="${IOS_CERTIFICATE_PASSWORD:-}"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          EXISTING_KEYCHAINS="$(security list-keychains -d user | sed -e 's/\"//g')"
+          # shellcheck disable=SC2086
+          security list-keychains -d user -s "$KEYCHAIN" $EXISTING_KEYCHAINS
+          printf '%s' "$IOS_CERTIFICATE_P12" | base64 -d > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+      - name: Install provisioning profile
+        id: profile
+        shell: bash
+        env:
+          IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          printf '%s' "$IOS_PROVISIONING_PROFILE" | base64 -d > "$RUNNER_TEMP/profile.mobileprovision"
+          cp "$RUNNER_TEMP/profile.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/"
+          security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          UUID="$(plutil -extract UUID raw -o - "$RUNNER_TEMP/profile.plist")"
+          APP_ID="$(plutil -extract Entitlements.application-identifier raw -o - "$RUNNER_TEMP/profile.plist")"
+          TEAM_ID="${APP_ID%%.*}"
+          BUNDLE_ID="${APP_ID#*.}"
+          {
+            echo "UUID=$UUID"
+            echo "TEAM_ID=$TEAM_ID"
+            echo "BUNDLE_ID=$BUNDLE_ID"
+          } >> "$GITHUB_OUTPUT"
+          echo "Provisioning profile: $UUID (team $TEAM_ID, bundle $BUNDLE_ID)"
+
+      - name: Export demo project to .ipa
+        shell: bash
+        env:
+          PROFILE_UUID: ${{ steps.profile.outputs.UUID }}
+          TEAM_ID: ${{ steps.profile.outputs.TEAM_ID }}
+          BUNDLE_ID: ${{ steps.profile.outputs.BUNDLE_ID }}
+        run: |
+          set -euo pipefail
+          sed -i '' "s/__TEAM_ID__/${TEAM_ID}/g; s/__BUNDLE_ID__/${BUNDLE_ID}/g" demo/export_presets.cfg
+          grep -E "app_store_team_id|bundle_identifier" demo/export_presets.cfg
+          export GODOT_APPLE_PLATFORM_PROVISIONING_PROFILE_UUID_DEBUG="$PROFILE_UUID"
+          GODOT="$RUNNER_TEMP/godot/Godot.app/Contents/MacOS/Godot"
+          "$GODOT" --headless --path demo --import
+          mkdir -p "$RUNNER_TEMP/ipa_out"
+          "$GODOT" --headless --path demo --export-debug "iOS" "$RUNNER_TEMP/ipa_out/andrix-demo.ipa"
+          ls -la "$RUNNER_TEMP/ipa_out"
+          cp "$RUNNER_TEMP/ipa_out/andrix-demo.ipa" "$GITHUB_WORKSPACE/andrix-demo.ipa"
+
+      - name: Upload .ipa artifact
+        uses: ./.github/actions/upload-artifact
+        with:
+          name: ios-ipa
+          path: andrix-demo.ipa
