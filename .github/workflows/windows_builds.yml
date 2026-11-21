@@ -148,22 +148,29 @@ jobs:
         run: |
           set +e
           STATUS=0
+          SV=0
+          SH=0
+          ST=0
           {
             echo "== --version =="
-            ${{ matrix.bin }} --version || STATUS=1
+            ${{ matrix.bin }} --version || { SV=1; STATUS=1; }
             echo "== --help =="
-            ${{ matrix.bin }} --help || STATUS=1
+            ${{ matrix.bin }} --help || { SH=1; STATUS=1; }
             echo "== --test =="
-            ${{ matrix.bin }} --test --force-colors || STATUS=1
+            ${{ matrix.bin }} --test --force-colors || { ST=1; STATUS=1; }
           } > unit_tests.log 2>&1
           set -e
           cat unit_tests.log || true
-          echo "::notice title=unit tests result::status=$STATUS"
+          echo "::notice title=unit substatuses::version=$SV help=$SH test=$ST"
           if [ "$STATUS" -ne 0 ]; then
-            tail -n 25 unit_tests.log > unit_tail.txt || true
+            grep -E "ERROR:|FATAL:|FAILED|failed|doctest|SUMMARY|Assertion|Leak|leaked|CRASH|Segmentation|passed" unit_tests.log > unit_hits.txt || true
+            tail -c 4000 unit_tests.log >> unit_hits.txt || true
+            n=0
             while IFS= read -r line || [ -n "$line" ]; do
-              echo "::error unit test: $line"
-            done < unit_tail.txt
+              n=$((n + 1))
+              if [ "$n" -gt 40 ]; then break; fi
+              echo "::error unit: $line"
+            done < unit_hits.txt
             exit "$STATUS"
           fi
 
