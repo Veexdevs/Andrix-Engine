@@ -45,10 +45,15 @@ runs:
         STATUS=$?
         set -e
         cat scons_ci.log || true
+        BYTES=0
+        if [ -f scons_ci.log ]; then BYTES=$(wc -c < scons_ci.log | tr -d ' \r'); fi
+        echo "::notice title=scons result::platform=${{ inputs.platform }} target=${{ inputs.target }} status=$STATUS bytes=$BYTES"
         if [ "$STATUS" -ne 0 ]; then
-          # Surface the build tail as annotations (job logs are not always reachable via API).
-          DETAIL="$(tail -n 80 scons_ci.log | sed -e 's/%/%25/g' -e 's/\r//g' -e 's/$/%0A/' | tr -d '\n')"
-          echo "::error title=SCons ${{ inputs.platform }}/${{ inputs.target }} failed::${DETAIL}"
+          # Surface the build tail line-by-line as annotations (job logs are not always reachable via API).
+          tail -n 15 scons_ci.log > scons_tail.txt || true
+          while IFS= read -r line || [ -n "$line" ]; do
+            echo "::error scons: $line"
+          done < scons_tail.txt
         fi
         ls -l bin/ || true
         exit "$STATUS"
