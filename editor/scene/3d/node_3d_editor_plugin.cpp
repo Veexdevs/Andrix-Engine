@@ -10511,7 +10511,7 @@ void Node3DEditor::_create_scene_node(int p_kind) {
 	}
 
 	String node_name;
-	Node3D *new_node = nullptr;
+	Node *new_node = nullptr;
 	switch (p_kind) {
 		case 0: {
 			MeshInstance3D *mesh_instance = memnew(MeshInstance3D);
@@ -10591,9 +10591,9 @@ void Node3DEditor::_create_scene_node(int p_kind) {
 	undo_redo->add_do_method(editor_selection, "add_node", new_node);
 
 	EditorDebuggerNode *debugger = EditorDebuggerNode::get_singleton();
-	const String parent_path = edited_scene->get_path_to(parent);
+	const NodePath parent_path = edited_scene->get_path_to(parent);
 	undo_redo->add_do_method(debugger, "live_debug_create_node", parent_path, new_node->get_class(), new_name);
-	undo_redo->add_undo_method(debugger, "live_debug_remove_node", NodePath(parent_path + "/" + new_name));
+	undo_redo->add_undo_method(debugger, "live_debug_remove_node", NodePath(String(parent_path) + "/" + new_name));
 
 	undo_redo->commit_action();
 }
