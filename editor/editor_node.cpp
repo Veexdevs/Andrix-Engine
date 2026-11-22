@@ -161,8 +161,10 @@
 #include "scene/gui/menu_bar.h"
 #include "scene/gui/menu_button.h"
 #include "scene/gui/panel.h"
+#include "scene/gui/panel_container.h"
 #include "scene/gui/popup.h"
 #include "scene/gui/rich_text_label.h"
+#include "scene/gui/separator.h"
 #include "scene/gui/split_container.h"
 #include "scene/gui/tab_container.h"
 #include "scene/main/scene_tree.h"
@@ -8696,6 +8698,77 @@ EditorNode::EditorNode() {
 	main_vbox->add_child(title_bar);
 #endif
 
+	// Roblox Studio-style ribbon bar right under the title bar. Only uses the
+	// default Godot theme (same colors/format as the rest of the editor).
+	{
+		PanelContainer *ribbon_panel = memnew(PanelContainer);
+		ribbon_panel->set_name("RibbonBar");
+		main_vbox->add_child(ribbon_panel);
+
+		HBoxContainer *ribbon_hb = memnew(HBoxContainer);
+		ribbon_hb->set_alignment(BoxContainer::ALIGNMENT_BEGIN);
+		ribbon_hb->add_theme_constant_override("separation", 4);
+		ribbon_panel->add_child(ribbon_hb);
+
+		struct RibbonItem {
+			String icon;
+			String text;
+			int id;
+		};
+
+		auto add_ribbon_group = [&](const String &p_caption, const Vector<RibbonItem> &p_buttons) {
+			if (ribbon_hb->get_child_count() > 0) {
+				ribbon_hb->add_child(memnew(VSeparator));
+			}
+
+			VBoxContainer *group_vb = memnew(VBoxContainer);
+			group_vb->add_theme_constant_override("separation", 2);
+
+			HBoxContainer *row = memnew(HBoxContainer);
+			row->add_theme_constant_override("separation", 2);
+			group_vb->add_child(row);
+
+			for (const RibbonItem &item : p_buttons) {
+				Button *btn = memnew(Button);
+				btn->set_flat(true);
+				btn->set_focus_mode(Control::FOCUS_NONE);
+				btn->set_button_icon(theme->get_icon(StringName(item.icon), EditorStringName(EditorIcons)));
+				btn->set_text(item.text);
+				btn->set_icon_alignment(HORIZONTAL_ALIGNMENT_CENTER);
+				btn->set_vertical_icon_alignment(VERTICAL_ALIGNMENT_TOP);
+				btn->set_text_alignment(HORIZONTAL_ALIGNMENT_CENTER);
+				btn->set_text_overrun_behavior(TextServer::OVERRUN_TRIM_ELLIPSIS);
+				btn->set_tooltip_text(item.text);
+				btn->connect(SceneStringName(pressed), callable_mp(this, &EditorNode::_menu_option).bind(item.id));
+				row->add_child(btn);
+			}
+
+			Label *caption = memnew(Label(p_caption));
+			caption->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_CENTER);
+			caption->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
+			group_vb->add_child(caption);
+
+			ribbon_hb->add_child(group_vb);
+		};
+
+		add_ribbon_group(TTRC("Scene"), {
+				{ "New", TTRC("New Scene"), SCENE_NEW_SCENE },
+				{ "Load", TTRC("Open Scene"), SCENE_OPEN_SCENE },
+				{ "LoadQuick", TTRC("Quick Open"), SCENE_QUICK_OPEN },
+				{ "Save", TTRC("Save Scene"), SCENE_SAVE_SCENE },
+				{ "Save", TTRC("Save All"), SCENE_SAVE_ALL_SCENES },
+				{ "Close", TTRC("Close Scene"), SCENE_CLOSE },
+		});
+		add_ribbon_group(TTRC("History"), {
+				{ "UndoRedo", TTRC("Undo"), SCENE_UNDO },
+				{ "Redo", TTRC("Redo"), SCENE_REDO },
+		});
+		add_ribbon_group(TTRC("Project"), {
+				{ "Search", TTRC("Find in Files"), PROJECT_FIND_IN_FILES },
+				{ "Tools", TTRC("Command Palette"), EDITOR_COMMAND_PALETTE },
+		});
+	}
+
 	DockSplitContainer *main_vsplit = memnew(DockSplitContainer);
 	main_vsplit->set_name("DockVSplitMain");
 	main_vsplit->set_vertical(true);
@@ -9202,24 +9275,28 @@ EditorNode::EditorNode() {
 	const String docks_section = "docks";
 	default_layout.instantiate();
 	// Dock numbers are based on DockSlot enum value + 1.
-	{
-		const String scene_key = SceneTreeDock::get_singleton()->get_effective_layout_key();
-		const String import_key = ImportDock::get_singleton()->get_effective_layout_key();
-		default_layout->set_value(docks_section, "dock_3", vformat("%s,%s", scene_key, import_key));
-		default_layout->set_value(docks_section, "dock_3_selected_tab_idx", 0);
-	}
+	// Roblox Studio-style arrangement (default Godot theme/colors kept):
+	// left column = FileSystem (Toolbox position), right column = Scene
+	// (Explorer position) on top and Inspector (Properties) below it.
+	// Empty dock slots collapse automatically.
 	{
 		const String filesystem_key = filesystem_dock->get_effective_layout_key();
 		const String history_key = history_dock->get_effective_layout_key();
-		default_layout->set_value(docks_section, "dock_4", vformat("%s,%s", filesystem_key, history_key));
-		default_layout->set_value(docks_section, "dock_4_selected_tab_idx", 0);
+		default_layout->set_value(docks_section, "dock_3", vformat("%s,%s", filesystem_key, history_key));
+		default_layout->set_value(docks_section, "dock_3_selected_tab_idx", 0);
+	}
+	{
+		const String scene_key = SceneTreeDock::get_singleton()->get_effective_layout_key();
+		const String import_key = ImportDock::get_singleton()->get_effective_layout_key();
+		default_layout->set_value(docks_section, "dock_5", vformat("%s,%s", scene_key, import_key));
+		default_layout->set_value(docks_section, "dock_5_selected_tab_idx", 0);
 	}
 	{
 		const String inspector_key = InspectorDock::get_singleton()->get_effective_layout_key();
 		const String signals_key = SignalsDock::get_singleton()->get_effective_layout_key();
 		const String groups_key = GroupsDock::get_singleton()->get_effective_layout_key();
-		default_layout->set_value(docks_section, "dock_5", vformat("%s,%s,%s", inspector_key, signals_key, groups_key));
-		default_layout->set_value(docks_section, "dock_5_selected_tab_idx", 0);
+		default_layout->set_value(docks_section, "dock_6", vformat("%s,%s,%s", inspector_key, signals_key, groups_key));
+		default_layout->set_value(docks_section, "dock_6_selected_tab_idx", 0);
 	}
 
 	int hsplits[] = { 0, dock_hsize, -dock_hsize, 0 };
