@@ -108,6 +108,7 @@
 #include "scene/gui/split_container.h"
 #include "scene/gui/subviewport_container.h"
 #include "scene/main/scene_tree.h"
+#include "scene/resources/3d/primitive_meshes.h"
 #include "scene/resources/3d/sky_material.h"
 #include "scene/resources/packed_scene.h"
 #include "scene/resources/sky.h"
@@ -8223,6 +8224,9 @@ void Node3DEditor::_menu_item_pressed(int p_option) {
 
 			view_layout_menu->get_popup()->set_item_checked(view_layout_menu->get_popup()->get_item_index(p_option), grid_enabled);
 
+			if (grid_button) {
+				grid_button->set_pressed_no_signal(grid_enabled);
+			}
 		} break;
 		case MENU_VIEW_CAMERA_SETTINGS: {
 			settings_dialog->popup_centered(settings_vbc->get_combined_minimum_size() + Size2(50, 50));
@@ -9654,6 +9658,16 @@ void Node3DEditor::_update_theme() {
 	view_layout_menu->get_popup()->set_item_icon(view_layout_menu->get_popup()->get_item_index(MENU_VIEW_USE_3_VIEWPORTS_ALT), get_editor_theme_icon(SNAME("Panels3Alt")));
 	view_layout_menu->get_popup()->set_item_icon(view_layout_menu->get_popup()->get_item_index(MENU_VIEW_USE_4_VIEWPORTS), get_editor_theme_icon(SNAME("Panels4")));
 
+	scene_tool_button[0]->set_button_icon(get_editor_theme_icon(SNAME("BoxMesh")));
+	scene_tool_button[1]->set_button_icon(get_editor_theme_icon(SNAME("SphereMesh")));
+	scene_tool_button[2]->set_button_icon(get_editor_theme_icon(SNAME("CylinderMesh")));
+	scene_tool_button[3]->set_button_icon(get_editor_theme_icon(SNAME("PrismMesh")));
+	scene_tool_button[4]->set_button_icon(get_editor_theme_icon(SNAME("TorusMesh")));
+	scene_tool_button[5]->set_button_icon(get_editor_theme_icon(SNAME("Camera3D")));
+	scene_tool_button[6]->set_button_icon(get_editor_theme_icon(SNAME("OmniLight3D")));
+	scene_tool_button[7]->set_button_icon(get_editor_theme_icon(SNAME("WorldEnvironment")));
+	grid_button->set_button_icon(get_editor_theme_icon(SNAME("GridToggle")));
+
 	sun_button->set_button_icon(get_editor_theme_icon(SNAME("PreviewSun")));
 	environ_button->set_button_icon(get_editor_theme_icon(SNAME("PreviewEnvironment")));
 	sun_environ_settings->set_button_icon(get_editor_theme_icon(SNAME("GuiTabMenuHl")));
@@ -10467,6 +10481,123 @@ void Node3DEditor::PreviewSunEnvPopup::shortcut_input(const Ref<InputEvent> &p_e
 	}
 }
 
+Button *Node3DEditor::_add_scene_tool_button(HBoxContainer *p_box, int p_kind, const String &p_name) {
+	Button *button = memnew(Button);
+	p_box->add_child(button);
+	button->set_theme_type_variation(SceneStringName(FlatButton));
+	button->set_tooltip_text(vformat(TTR("Add %s to the scene."), p_name));
+	button->set_accessibility_name(p_name);
+	button->connect(SceneStringName(pressed), callable_mp(this, &Node3DEditor::_create_scene_node).bind(p_kind));
+	scene_tool_button[p_kind] = button;
+	return button;
+}
+
+void Node3DEditor::_grid_button_pressed() {
+	_menu_item_pressed(MENU_VIEW_GRID);
+}
+
+void Node3DEditor::_create_scene_node(int p_kind) {
+	Node *edited_scene = EditorNode::get_singleton()->get_edited_scene();
+	ERR_FAIL_COND_MSG(edited_scene == nullptr, "No edited scene to add a node to.");
+
+	// Parent under the selected node when it belongs to the edited scene, else the root.
+	Node *parent = edited_scene;
+	const TypedArray<Node> selection = editor_selection->get_selected_nodes();
+	if (selection.size() > 0) {
+		Node *selected = Object::cast_to<Node>(selection[0]);
+		if (selected == edited_scene || (selected != nullptr && selected->get_owner() == edited_scene)) {
+			parent = selected;
+		}
+	}
+
+	String node_name;
+	Node3D *new_node = nullptr;
+	switch (p_kind) {
+		case 0: {
+			MeshInstance3D *mesh_instance = memnew(MeshInstance3D);
+			Ref<BoxMesh> mesh;
+			mesh.instantiate();
+			mesh_instance->set_mesh(mesh);
+			mesh_instance->set_name("Box");
+			new_node = mesh_instance;
+			node_name = "Box";
+		} break;
+		case 1: {
+			MeshInstance3D *mesh_instance = memnew(MeshInstance3D);
+			Ref<SphereMesh> mesh;
+			mesh.instantiate();
+			mesh_instance->set_mesh(mesh);
+			mesh_instance->set_name("Sphere");
+			new_node = mesh_instance;
+			node_name = "Sphere";
+		} break;
+		case 2: {
+			MeshInstance3D *mesh_instance = memnew(MeshInstance3D);
+			Ref<CylinderMesh> mesh;
+			mesh.instantiate();
+			mesh_instance->set_mesh(mesh);
+			mesh_instance->set_name("Cylinder");
+			new_node = mesh_instance;
+			node_name = "Cylinder";
+		} break;
+		case 3: {
+			MeshInstance3D *mesh_instance = memnew(MeshInstance3D);
+			Ref<PrismMesh> mesh;
+			mesh.instantiate();
+			mesh_instance->set_mesh(mesh);
+			mesh_instance->set_name("Prism");
+			new_node = mesh_instance;
+			node_name = "Prism";
+		} break;
+		case 4: {
+			MeshInstance3D *mesh_instance = memnew(MeshInstance3D);
+			Ref<TorusMesh> mesh;
+			mesh.instantiate();
+			mesh_instance->set_mesh(mesh);
+			mesh_instance->set_name("Torus");
+			new_node = mesh_instance;
+			node_name = "Torus";
+		} break;
+		case 5: {
+			Camera3D *camera = memnew(Camera3D);
+			camera->set_name("Camera3D");
+			new_node = camera;
+			node_name = "Camera3D";
+		} break;
+		case 6: {
+			OmniLight3D *light = memnew(OmniLight3D);
+			light->set_name("OmniLight3D");
+			new_node = light;
+			node_name = "OmniLight3D";
+		} break;
+		case 7: {
+			WorldEnvironment *world_environment = memnew(WorldEnvironment);
+			world_environment->set_name("WorldEnvironment");
+			new_node = world_environment;
+			node_name = "WorldEnvironment";
+		} break;
+		default:
+			return;
+	}
+
+	const String new_name = parent->validate_child_name(new_node);
+
+	EditorUndoRedoManager *undo_redo = EditorUndoRedoManager::get_singleton();
+	undo_redo->create_action(vformat(TTR("Create %s"), node_name));
+	undo_redo->add_do_method(parent, "add_child", new_node, true);
+	undo_redo->add_do_method(new_node, "set_owner", edited_scene);
+	undo_redo->add_do_reference(new_node);
+	undo_redo->add_undo_method(parent, "remove_child", new_node);
+	undo_redo->add_do_method(editor_selection, "add_node", new_node);
+
+	EditorDebuggerNode *debugger = EditorDebuggerNode::get_singleton();
+	const String parent_path = edited_scene->get_path_to(parent);
+	undo_redo->add_do_method(debugger, "live_debug_create_node", parent_path, new_node->get_class(), new_name);
+	undo_redo->add_undo_method(debugger, "live_debug_remove_node", NodePath(parent_path + "/" + new_name));
+
+	undo_redo->commit_action();
+}
+
 Node3DEditor::Node3DEditor() {
 	gizmo.visible = true;
 	gizmo.scale = 1.0;
@@ -10544,6 +10675,18 @@ Node3DEditor::Node3DEditor() {
 	tool_button[TOOL_MODE_SELECT]->set_shortcut(ED_SHORTCUT("spatial_editor/tool_select", TTRC("Select Mode"), Key::V, true));
 	tool_button[TOOL_MODE_SELECT]->set_shortcut_context(this);
 	tool_button[TOOL_MODE_SELECT]->set_accessibility_name(TTRC("Select Mode"));
+
+	main_menu_hbox->add_child(memnew(VSeparator));
+
+	// Scene creation tools (design reference: "scene tools" toolbar group).
+	_add_scene_tool_button(main_menu_hbox, 0, "Box");
+	_add_scene_tool_button(main_menu_hbox, 1, "Sphere");
+	_add_scene_tool_button(main_menu_hbox, 2, "Cylinder");
+	_add_scene_tool_button(main_menu_hbox, 3, "Prism");
+	_add_scene_tool_button(main_menu_hbox, 4, "Torus");
+	_add_scene_tool_button(main_menu_hbox, 5, "Camera3D");
+	_add_scene_tool_button(main_menu_hbox, 6, "OmniLight3D");
+	_add_scene_tool_button(main_menu_hbox, 7, "WorldEnvironment");
 
 	main_menu_hbox->add_child(memnew(VSeparator));
 
@@ -10640,6 +10783,17 @@ Node3DEditor::Node3DEditor() {
 	tool_option_button[TOOL_OPT_PRESERVE_CHILDREN_TRANSFORM]->set_tooltip_text(TTRC("When enabled, transforming a node will preserve the global transform of its children.\nThis also applies when editing transform properties in the Inspector."));
 
 	main_menu_hbox->add_child(memnew(VSeparator));
+
+	// Grid toggle (design reference: visualization group).
+	grid_button = memnew(Button);
+	grid_button->set_toggle_mode(true);
+	grid_button->set_theme_type_variation(SceneStringName(FlatButton));
+	grid_button->set_pressed(true); // Grid is enabled by default (set below in the View menu).
+	grid_button->set_tooltip_text(TTRC("Toggle the 3D grid."));
+	grid_button->set_accessibility_name(TTRC("Toggle Grid"));
+	grid_button->connect(SceneStringName(pressed), callable_mp(this, &Node3DEditor::_grid_button_pressed));
+	main_menu_hbox->add_child(grid_button);
+
 	sun_button = memnew(Button);
 	sun_button->set_tooltip_text(TTRC("Toggle preview sunlight.\nIf a DirectionalLight3D node is added to the scene, preview sunlight is disabled."));
 	sun_button->set_toggle_mode(true);

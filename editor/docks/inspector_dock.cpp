@@ -47,6 +47,7 @@
 #include "editor/settings/editor_settings.h"
 #include "editor/themes/editor_scale.h"
 #include "scene/gui/box_container.h"
+#include "scene/gui/texture_rect.h"
 
 void InspectorDock::_prepare_menu() {
 	PopupMenu *menu = object_menu->get_popup();
@@ -475,6 +476,9 @@ void InspectorDock::_notification(int p_what) {
 
 			history_menu->set_button_icon(get_editor_theme_icon(SNAME("History")));
 			object_menu->set_button_icon(get_editor_theme_icon(SNAME("Tools")));
+			if (empty_icon) {
+				empty_icon->set_texture(get_editor_theme_icon(SNAME("BoxMesh")));
+			}
 			search->set_right_icon(get_editor_theme_icon(SNAME("Search")));
 			if (info_is_warning) {
 				info->set_button_icon(get_editor_theme_icon(SNAME("NodeWarning")));
@@ -547,6 +551,11 @@ void InspectorDock::update(Object *p_object) {
 	object_selector->update_path();
 
 	current = p_object;
+
+	// Empty-state placeholder: visible only while nothing is being inspected.
+	if (empty_state) {
+		empty_state->set_visible(p_object == nullptr);
+	}
 
 	const bool is_object = p_object != nullptr;
 	const bool is_resource = is_object && p_object->is_class("Resource");
@@ -708,7 +717,7 @@ InspectorDock::InspectorDock(EditorData &p_editor_data) {
 	set_name(TTRC("Inspector"));
 	// Keep the saved-layout key stable while showing the new display title.
 	set_layout_key("Inspector");
-	set_title(TTRC("Properties"));
+	set_title(TTR("Properties"));
 	set_icon_name("AnimationTrackList");
 	set_dock_shortcut(ED_SHORTCUT_AND_COMMAND("docks/open_inspector", TTRC("Open Inspector Dock")));
 	set_default_slot(EditorDock::DOCK_SLOT_LEFT_UR);
@@ -863,13 +872,44 @@ InspectorDock::InspectorDock(EditorData &p_editor_data) {
 	mc->set_theme_type_variation("NoBorderHorizontalBottom");
 	mc->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 
+	VBoxContainer *inspector_vb = memnew(VBoxContainer);
+	mc->add_child(inspector_vb);
+	inspector_vb->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	inspector_vb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+
 	inspector = EditorInspector::create_default_inspector(search);
-	mc->add_child(inspector);
+	inspector_vb->add_child(inspector);
+	inspector->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	inspector->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	inspector->connect("resource_selected", callable_mp(this, &InspectorDock::_resource_selected));
+
+	// Empty-state placeholder shown while no object is being inspected (design reference).
+	empty_state = memnew(VBoxContainer);
+	empty_state->set_alignment(BoxContainer::ALIGNMENT_CENTER);
+	empty_state->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	empty_state->set_h_size_flags(Control::SIZE_FILL);
+	inspector_vb->add_child(empty_state);
+
+	empty_icon = memnew(TextureRect);
+	empty_icon->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
+	empty_icon->set_expand_mode(TextureRect::EXPAND_IGNORE_SIZE);
+	empty_icon->set_custom_minimum_size(Size2(96, 96) * EDSCALE);
+	empty_icon->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+	empty_state->add_child(empty_icon);
+
+	Label *empty_label = memnew(Label);
+	empty_label->set_text(TTRC("Select an object to view its properties."));
+	empty_label->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_CENTER);
+	empty_label->set_autowrap_mode(TextServer::AUTOWRAP_WORD_SMART);
+	empty_state->add_child(empty_label);
 
 	FileSystemDock::get_singleton()->connect("files_moved", callable_mp(this, &InspectorDock::_files_moved));
 
 	set_process_shortcut_input(true);
+
+	// Show the empty-state placeholder until an object is inspected.
+	object_selector->update_path();
+	empty_state->set_visible(true);
 }
 
 InspectorDock::~InspectorDock() {

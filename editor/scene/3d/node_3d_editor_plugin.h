@@ -756,6 +756,8 @@ private:
 
 	Button *tool_button[TOOL_MAX];
 	Button *tool_option_button[TOOL_OPT_MAX];
+	Button *scene_tool_button[8];
+	Button *grid_button = nullptr;
 
 	MenuButton *transform_menu = nullptr;
 	PopupMenu *gizmos_menu = nullptr;
@@ -792,6 +794,9 @@ private:
 	void _update_vertex_snap_tooltips();
 	void _xform_dialog_action();
 	void _menu_item_pressed(int p_option);
+	void _create_scene_node(int p_kind);
+	void _grid_button_pressed();
+	Button *_add_scene_tool_button(HBoxContainer *p_box, int p_kind, const String &p_name);
 	void _menu_item_toggled(bool pressed, int p_option);
 	void _menu_gizmo_toggled(int p_option);
 	// Used for secondary menu items which are displayed depending on the currently selected node

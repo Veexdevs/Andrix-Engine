@@ -139,6 +139,9 @@ private:
 
 	LineEdit *search_box = nullptr;
 
+	LineEdit *command_line = nullptr;
+	Button *command_send_button = nullptr;
+
 	// Reusable RichTextLabel for BBCode parsing during search
 	RichTextLabel *bbcode_parser = nullptr;
 
@@ -160,6 +163,8 @@ private:
 
 	void _set_filter_active(bool p_active, MessageType p_message_type);
 	void _search_changed(const String &p_text);
+	void _command_submitted(const String &p_text);
+	void _command_send_pressed();
 
 	void _process_message(const String &p_msg, MessageType p_type, bool p_clear);
 	void _reset_message_counts();

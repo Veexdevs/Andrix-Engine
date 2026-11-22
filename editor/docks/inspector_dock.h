@@ -42,6 +42,7 @@
 
 class EditorFileDialog;
 class EditorObjectSelector;
+class TextureRect;
 
 class InspectorDock : public EditorDock {
 	GDCLASS(InspectorDock, EditorDock);
@@ -74,6 +75,8 @@ class InspectorDock : public EditorDock {
 	EditorData *editor_data = nullptr;
 
 	EditorInspector *inspector = nullptr;
+	Control *empty_state = nullptr;
+	TextureRect *empty_icon = nullptr;
 
 	Object *current = nullptr;
 

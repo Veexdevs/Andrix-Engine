@@ -265,6 +265,43 @@ void EditorCommandPalette::execute_command(const String &p_command_key) {
 	}
 }
 
+bool EditorCommandPalette::execute_command_matching(const String &p_text) {
+	const String text = p_text.strip_edges();
+	if (text.is_empty()) {
+		return false;
+	}
+	if (commands.has(text)) {
+		execute_command(text);
+		return true;
+	}
+
+	const String lower = text.to_lower();
+
+	String named_key;
+	int named_count = 0;
+	String prefix_key;
+	int prefix_count = 0;
+	for (const KeyValue<String, Command> &E : commands) {
+		const String command_lower = E.value.name.to_lower();
+		if (command_lower == lower) {
+			named_key = E.key;
+			named_count++;
+		} else if (command_lower.begins_with(lower)) {
+			prefix_key = E.key;
+			prefix_count++;
+		}
+	}
+	if (named_count == 1) {
+		execute_command(named_key);
+		return true;
+	}
+	if (prefix_count == 1) {
+		execute_command(prefix_key);
+		return true;
+	}
+	return false;
+}
+
 void EditorCommandPalette::register_shortcuts_as_command() {
 	for (const KeyValue<String, Pair<String, Ref<Shortcut>>> &E : unregistered_shortcuts) {
 		String command_name = E.value.first;
