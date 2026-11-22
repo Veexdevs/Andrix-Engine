@@ -466,6 +466,9 @@ private:
 	uint64_t update_spinner_step_msec = 0;
 	uint64_t update_spinner_step_frame = 0;
 	int update_spinner_step = 0;
+	Label *editor_status_label = nullptr;
+	Label *editor_status_dot = nullptr;
+	bool editor_status_playing = false;
 
 	String saving_scene;
 	EditorProgress *save_scene_progress = nullptr;

@@ -127,6 +127,9 @@ void EditorLog::_update_theme() {
 	clear_button->set_button_icon(get_editor_theme_icon(SNAME("Clear")));
 	collapse_button->set_button_icon(get_editor_theme_icon(SNAME("CombineLines")));
 	search_box->set_right_icon(get_editor_theme_icon(SNAME("Search")));
+	if (command_send_button) {
+		command_send_button->set_button_icon(get_editor_theme_icon(SNAME("ArrowRight")));
+	}
 
 	theme_cache.error_color = get_theme_color(SNAME("error_color"), EditorStringName(Editor));
 	theme_cache.error_icon = get_editor_theme_icon(SNAME("Error"));
@@ -474,6 +477,21 @@ void EditorLog::_set_filter_active(bool p_active, MessageType p_message_type) {
 	_rebuild_log();
 }
 
+void EditorLog::_command_submitted(const String &p_text) {
+	const String command = p_text.strip_edges();
+	if (command.is_empty()) {
+		return;
+	}
+	if (!EditorCommandPalette::get_singleton()->execute_command_matching(command)) {
+		ERR_PRINT(vformat(TTR("Command not found: %s"), command));
+	}
+	command_line->clear();
+}
+
+void EditorLog::_command_send_pressed() {
+	_command_submitted(command_line->get_text());
+}
+
 void EditorLog::_search_changed(const String &p_text) {
 	_rebuild_log();
 }
@@ -524,6 +542,26 @@ EditorLog::EditorLog() {
 	log->set_deselect_on_focus_loss_enabled(false);
 	log->connect("meta_clicked", callable_mp(this, &EditorLog::_meta_clicked));
 	vb_left->add_child(log);
+
+	// Command input row: runs editor commands by name (design reference: console input).
+	HBoxContainer *command_hb = memnew(HBoxContainer);
+	vb_left->add_child(command_hb);
+
+	command_line = memnew(LineEdit);
+	command_line->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	command_line->set_placeholder(TTRC("Type a command..."));
+	command_line->set_accessibility_name(TTRC("Type a command..."));
+	command_line->set_clear_button_enabled(true);
+	command_line->connect("text_submitted", callable_mp(this, &EditorLog::_command_submitted));
+	command_hb->add_child(command_line);
+
+	command_send_button = memnew(Button);
+	command_send_button->set_theme_type_variation("BottomPanelButton");
+	command_send_button->set_focus_mode(FOCUS_ACCESSIBILITY);
+	command_send_button->set_tooltip_text(TTRC("Run the typed editor command."));
+	command_send_button->set_accessibility_name(TTRC("Run Command"));
+	command_send_button->connect(SceneStringName(pressed), callable_mp(this, &EditorLog::_command_send_pressed));
+	command_hb->add_child(command_send_button);
 
 	HFlowContainer *bottom_hf = memnew(HFlowContainer);
 	bottom_hf->set_alignment(FlowContainer::ALIGNMENT_END);

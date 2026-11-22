@@ -120,6 +120,13 @@ void EditorObjectSelector::_about_to_show() {
 }
 
 void EditorObjectSelector::update_path() {
+	if (history->get_path_size() == 0) {
+		// Design reference: show a clear placeholder while nothing is selected.
+		current_object_label->set_text(TTR("No object selected"));
+		set_tooltip_text("");
+		return;
+	}
+
 	for (int i = 0; i < history->get_path_size(); i++) {
 		Object *obj = ObjectDB::get_instance(history->get_path_object(i));
 		if (!obj) {

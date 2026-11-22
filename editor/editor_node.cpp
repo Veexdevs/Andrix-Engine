@@ -158,6 +158,7 @@
 #include "scene/gui/color_picker.h"
 #include "scene/gui/dialogs.h"
 #include "scene/gui/file_dialog.h"
+#include "scene/gui/margin_container.h"
 #include "scene/gui/menu_bar.h"
 #include "scene/gui/menu_button.h"
 #include "scene/gui/panel.h"
@@ -923,6 +924,16 @@ void EditorNode::_notification(int p_what) {
 				EditorSettings::get_singleton()->notify_changes();
 				EditorSettings::get_singleton()->emit_signal(SNAME("settings_changed"));
 				settings_overrides_changed = false;
+			}
+
+			// Status bar: reflect whether a project scene is running.
+			if (EditorRunBar::get_singleton() && editor_status_label) {
+				const bool playing = EditorRunBar::get_singleton()->is_playing();
+				if (playing != editor_status_playing) {
+					editor_status_playing = playing;
+					editor_status_label->set_text(playing ? TTRC("Running...") : TTRC("Ready"));
+					editor_status_dot->add_theme_color_override(SceneStringName(font_color), playing ? Color(0.9, 0.65, 0.2) : Color(0.3, 0.7, 0.35));
+				}
 			}
 		} break;
 
@@ -8775,6 +8786,36 @@ EditorNode::EditorNode() {
 	main_vsplit->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	main_vbox->add_child(main_vsplit);
 
+	// Editor status bar (design reference: bottom status row with state and version).
+	MarginContainer *status_mc = memnew(MarginContainer);
+	status_mc->add_theme_constant_override("margin_left", 8 * EDSCALE);
+	status_mc->add_theme_constant_override("margin_right", 8 * EDSCALE);
+	status_mc->add_theme_constant_override("margin_top", 2 * EDSCALE);
+	status_mc->add_theme_constant_override("margin_bottom", 3 * EDSCALE);
+	main_vbox->add_child(status_mc);
+
+	HBoxContainer *status_hb = memnew(HBoxContainer);
+	status_hb->add_theme_constant_override("separation", 8 * EDSCALE);
+	status_mc->add_child(status_hb);
+
+	editor_status_dot = memnew(Label);
+	editor_status_dot->set_text(String::utf8("\xe2\x97\x8f")); // Filled circle.
+	editor_status_dot->add_theme_color_override(SceneStringName(font_color), Color(0.3, 0.7, 0.35));
+	editor_status_dot->set_vertical_alignment(VERTICAL_ALIGNMENT_CENTER);
+	status_hb->add_child(editor_status_dot);
+
+	editor_status_label = memnew(Label);
+	editor_status_label->set_text(TTRC("Ready"));
+	editor_status_label->set_vertical_alignment(VERTICAL_ALIGNMENT_CENTER);
+	status_hb->add_child(editor_status_label);
+
+	status_hb->add_spacer();
+
+	Label *version_label = memnew(Label);
+	version_label->set_text(vformat("v%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH));
+	version_label->set_vertical_alignment(VERTICAL_ALIGNMENT_CENTER);
+	status_hb->add_child(version_label);
+
 	main_hsplit = memnew(DockSplitContainer);
 	main_hsplit->set_name("DockHSplitMain");
 	main_hsplit->set_v_size_flags(Control::SIZE_EXPAND_FILL);
@@ -9245,6 +9286,15 @@ EditorNode::EditorNode() {
 	settings_button->set_accessibility_name(TTRC("Editor Settings"));
 	settings_button->connect(SceneStringName(pressed), callable_mp(this, &EditorNode::_menu_option).bind(EDITOR_OPEN_SETTINGS));
 	right_menu_hb->add_child(settings_button);
+
+	// Fullscreen toggle (design reference: top-right fullscreen button).
+	Button *fullscreen_button = memnew(Button);
+	fullscreen_button->set_flat(true);
+	fullscreen_button->set_button_icon(theme->get_icon(SNAME("Fullscreen"), EditorStringName(EditorIcons)));
+	fullscreen_button->set_tooltip_text(TTRC("Toggle Fullscreen"));
+	fullscreen_button->set_accessibility_name(TTRC("Toggle Fullscreen"));
+	fullscreen_button->connect(SceneStringName(pressed), callable_mp(this, &EditorNode::_menu_option).bind(EDITOR_TOGGLE_FULLSCREEN));
+	right_menu_hb->add_child(fullscreen_button);
 
 	// Instantiate and place editor docks.
 

@@ -4180,7 +4180,7 @@ msgid "Display Mode"
 msgstr "Modo de Exibição"
 
 msgid "Files"
-msgstr "Ficheiros"
+msgstr "Arquivos"
 
 msgid ""
 "Scanning Files,\n"
@@ -23395,3 +23395,36 @@ msgstr ""
 "4.3, então se este código foi escrito antes desta, não irá continuar "
 "funcionando. Considere especificar o componente z do espaço de corte "
 "diretamente (use `vec4(VERTEX.xy, 1.0,1.0)`."
+
+msgid "Ready"
+msgstr "Pronto"
+
+msgid "No object selected"
+msgstr "Nenhum objeto selecionado"
+
+msgid "Select an object to view its properties."
+msgstr "Selecione um objeto para ver suas propriedades."
+
+msgid "Type a command..."
+msgstr "Digite um comando..."
+
+msgid "Command not found: %s"
+msgstr "Comando não encontrado: %s"
+
+msgid "Create %s"
+msgstr "Criar %s"
+
+msgid "Add %s to the scene."
+msgstr "Adicionar %s à cena."
+
+msgid "Toggle the 3D grid."
+msgstr "Alternar a grade 3D."
+
+msgid "Run the typed editor command."
+msgstr "Executar o comando digitado."
+
+msgid "Run Command"
+msgstr "Executar Comando"
+
+msgid "Search objects..."
+msgstr "Pesquisar objetos..."
