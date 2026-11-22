@@ -9237,6 +9237,15 @@ EditorNode::EditorNode() {
 	p->add_item(TTRC("Hide Update Spinner"), SPINNER_UPDATE_SPINNER_HIDE);
 	_update_update_spinner();
 
+	// Editor Settings shortcut (design reference: gear button at the top-right).
+	Button *settings_button = memnew(Button);
+	settings_button->set_flat(true);
+	settings_button->set_button_icon(theme->get_icon(SNAME("Tools"), EditorStringName(EditorIcons)));
+	settings_button->set_tooltip_text(TTRC("Editor Settings"));
+	settings_button->set_accessibility_name(TTRC("Editor Settings"));
+	settings_button->connect(SceneStringName(pressed), callable_mp(this, &EditorNode::_menu_option).bind(EDITOR_OPEN_SETTINGS));
+	right_menu_hb->add_child(settings_button);
+
 	// Instantiate and place editor docks.
 
 	memnew(SceneTreeDock(scene_root, editor_selection, editor_data));
@@ -9275,28 +9284,27 @@ EditorNode::EditorNode() {
 	const String docks_section = "docks";
 	default_layout.instantiate();
 	// Dock numbers are based on DockSlot enum value + 1.
-	// Roblox Studio-style arrangement (default Godot theme/colors kept):
-	// left column = FileSystem (Toolbox position), right column = Scene
-	// (Explorer position) on top and Inspector (Properties) below it.
-	// Empty dock slots collapse automatically.
-	{
-		const String filesystem_key = filesystem_dock->get_effective_layout_key();
-		const String history_key = history_dock->get_effective_layout_key();
-		default_layout->set_value(docks_section, "dock_3", vformat("%s,%s", filesystem_key, history_key));
-		default_layout->set_value(docks_section, "dock_3_selected_tab_idx", 0);
-	}
+	// Design reference layout: Explorer (Scene) and Files (FileSystem) stacked
+	// on the left, Properties (Inspector) filling the right column, viewport
+	// in the center with the console below it. Empty slots collapse.
 	{
 		const String scene_key = SceneTreeDock::get_singleton()->get_effective_layout_key();
 		const String import_key = ImportDock::get_singleton()->get_effective_layout_key();
-		default_layout->set_value(docks_section, "dock_5", vformat("%s,%s", scene_key, import_key));
-		default_layout->set_value(docks_section, "dock_5_selected_tab_idx", 0);
+		default_layout->set_value(docks_section, "dock_3", vformat("%s,%s", scene_key, import_key));
+		default_layout->set_value(docks_section, "dock_3_selected_tab_idx", 0);
+	}
+	{
+		const String filesystem_key = filesystem_dock->get_effective_layout_key();
+		const String history_key = history_dock->get_effective_layout_key();
+		default_layout->set_value(docks_section, "dock_4", vformat("%s,%s", filesystem_key, history_key));
+		default_layout->set_value(docks_section, "dock_4_selected_tab_idx", 0);
 	}
 	{
 		const String inspector_key = InspectorDock::get_singleton()->get_effective_layout_key();
 		const String signals_key = SignalsDock::get_singleton()->get_effective_layout_key();
 		const String groups_key = GroupsDock::get_singleton()->get_effective_layout_key();
-		default_layout->set_value(docks_section, "dock_6", vformat("%s,%s,%s", inspector_key, signals_key, groups_key));
-		default_layout->set_value(docks_section, "dock_6_selected_tab_idx", 0);
+		default_layout->set_value(docks_section, "dock_5", vformat("%s,%s,%s", inspector_key, signals_key, groups_key));
+		default_layout->set_value(docks_section, "dock_5_selected_tab_idx", 0);
 	}
 
 	int hsplits[] = { 0, dock_hsize, -dock_hsize, 0 };

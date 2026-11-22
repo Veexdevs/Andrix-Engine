@@ -4995,6 +4995,9 @@ void SceneTreeDock::_update_configuration_warning() {
 
 SceneTreeDock::SceneTreeDock(Node *p_scene_root, EditorSelection *p_editor_selection, EditorData &p_editor_data) {
 	set_name(TTRC("Scene"));
+	// Keep the saved-layout key stable while showing the new display title.
+	set_layout_key("Scene");
+	set_title(TTRC("Explorer"));
 	set_icon_name("PackedScene");
 	set_dock_shortcut(ED_SHORTCUT_AND_COMMAND("docks/open_scene", TTRC("Open Scene Dock")));
 	set_default_slot(EditorDock::DOCK_SLOT_RIGHT_UL);

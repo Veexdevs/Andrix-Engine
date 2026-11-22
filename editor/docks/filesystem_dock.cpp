@@ -4428,6 +4428,9 @@ void FileSystemDock::_bind_methods() {
 FileSystemDock::FileSystemDock() {
 	singleton = this;
 	set_name(TTRC("FileSystem"));
+	// Keep the saved-layout key stable while showing the new display title.
+	set_layout_key("FileSystem");
+	set_title(TTRC("Files"));
 	set_icon_name("Folder");
 	set_dock_shortcut(ED_SHORTCUT_AND_COMMAND("docks/open_filesystem", TTRC("Open FileSystem Dock"), KeyModifierMask::ALT | Key::F));
 	set_default_slot(EditorDock::DOCK_SLOT_LEFT_BR);
