@@ -8707,7 +8707,7 @@ EditorNode::EditorNode() {
 
 		HBoxContainer *ribbon_hb = memnew(HBoxContainer);
 		ribbon_hb->set_alignment(BoxContainer::ALIGNMENT_BEGIN);
-		ribbon_hb->set_theme_constant_override("separation", 4);
+		ribbon_hb->add_theme_constant_override("separation", 4);
 		ribbon_panel->add_child(ribbon_hb);
 
 		struct RibbonItem {
@@ -8722,17 +8722,17 @@ EditorNode::EditorNode() {
 			}
 
 			VBoxContainer *group_vb = memnew(VBoxContainer);
-			group_vb->set_theme_constant_override("separation", 2);
+			group_vb->add_theme_constant_override("separation", 2);
 
 			HBoxContainer *row = memnew(HBoxContainer);
-			row->set_theme_constant_override("separation", 2);
+			row->add_theme_constant_override("separation", 2);
 			group_vb->add_child(row);
 
 			for (const RibbonItem &item : p_buttons) {
 				Button *btn = memnew(Button);
 				btn->set_flat(true);
 				btn->set_focus_mode(Control::FOCUS_NONE);
-				btn->set_icon(theme->get_icon(StringName(item.icon), EditorStringName(EditorIcons)));
+				btn->set_button_icon(theme->get_icon(StringName(item.icon), EditorStringName(EditorIcons)));
 				btn->set_text(item.text);
 				btn->set_icon_alignment(HORIZONTAL_ALIGNMENT_CENTER);
 				btn->set_vertical_icon_alignment(VERTICAL_ALIGNMENT_TOP);
