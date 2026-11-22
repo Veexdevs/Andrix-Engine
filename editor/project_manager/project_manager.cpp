@@ -181,7 +181,13 @@ void ProjectManager::_build_icon_type_cache(Ref<Theme> p_theme) {
 // Main layout.
 
 void ProjectManager::_update_size_limits() {
-	const Size2 minimum_size = Size2(720, 450) * EDSCALE;
+	Size2 minimum_size = Size2(720, 450) * EDSCALE;
+	// Never demand a window larger than the screen itself: on high-DPI
+	// phones/tablets EDSCALE can push the minimum past the screen size.
+	const Size2 pm_screen_size = DisplayServer::get_singleton()->screen_get_size();
+	if (pm_screen_size.x > 0 && pm_screen_size.y > 0) {
+		minimum_size = minimum_size.min(pm_screen_size);
+	}
 
 	// Define a minimum window size to prevent UI elements from overlapping or being cut off.
 	Window *w = Object::cast_to<Window>(SceneTree::get_singleton()->get_root());

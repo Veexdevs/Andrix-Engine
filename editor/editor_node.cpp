@@ -8493,7 +8493,14 @@ EditorNode::EditorNode() {
 	// Define a minimum window size to prevent UI elements from overlapping or being cut off.
 	Window *w = Object::cast_to<Window>(SceneTree::get_singleton()->get_root());
 	if (w) {
-		const Size2 minimum_size = Size2(1024, 600) * EDSCALE;
+		Size2 minimum_size = Size2(1024, 600) * EDSCALE;
+		// Never demand a window larger than the screen itself: on high-DPI
+		// phones/tablets EDSCALE can push the minimum past the screen size,
+		// which would push the docks, status bar and top-bar buttons off-screen.
+		const Size2 screen_size = DisplayServer::get_singleton()->screen_get_size();
+		if (screen_size.x > 0 && screen_size.y > 0) {
+			minimum_size = minimum_size.min(screen_size);
+		}
 		w->set_min_size(minimum_size); // Calling it this early doesn't sync the property with DS.
 		DisplayServer::get_singleton()->window_set_min_size(minimum_size);
 	}
@@ -8748,7 +8755,6 @@ EditorNode::EditorNode() {
 				btn->set_icon_alignment(HORIZONTAL_ALIGNMENT_CENTER);
 				btn->set_vertical_icon_alignment(VERTICAL_ALIGNMENT_TOP);
 				btn->set_text_alignment(HORIZONTAL_ALIGNMENT_CENTER);
-				btn->set_text_overrun_behavior(TextServer::OVERRUN_TRIM_ELLIPSIS);
 				btn->set_tooltip_text(item.text);
 				btn->connect(SceneStringName(pressed), callable_mp(this, &EditorNode::_menu_option).bind(item.id));
 				row->add_child(btn);
