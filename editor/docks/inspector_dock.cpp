@@ -884,11 +884,12 @@ InspectorDock::InspectorDock(EditorData &p_editor_data) {
 	inspector->connect("resource_selected", callable_mp(this, &InspectorDock::_resource_selected));
 
 	// Empty-state placeholder shown while no object is being inspected (design reference).
-	empty_state = memnew(VBoxContainer);
-	empty_state->set_alignment(BoxContainer::ALIGNMENT_CENTER);
-	empty_state->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	empty_state->set_h_size_flags(Control::SIZE_FILL);
-	inspector_vb->add_child(empty_state);
+	VBoxContainer *empty_state_vb = memnew(VBoxContainer);
+	empty_state_vb->set_alignment(BoxContainer::ALIGNMENT_CENTER);
+	empty_state_vb->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	empty_state_vb->set_h_size_flags(Control::SIZE_FILL);
+	inspector_vb->add_child(empty_state_vb);
+	empty_state = empty_state_vb;
 
 	empty_icon = memnew(TextureRect);
 	empty_icon->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
