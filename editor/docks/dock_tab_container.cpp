@@ -347,7 +347,7 @@ DockTabContainer::DockTabContainer(EditorDock::DockSlot p_slot) {
 		dock_close_button->connect(SceneStringName(pressed), callable_mp(this, &DockTabContainer::_close_button_pressed));
 		get_internal_container()->add_child(dock_close_button);
 
-		connect(SceneStringName(tab_changed), callable_mp(this, &DockTabContainer::_update_pin_button).unbind(1));
+		connect("tab_changed", callable_mp(this, &DockTabContainer::_update_pin_button).unbind(1));
 	}
 }
 
