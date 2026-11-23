@@ -168,6 +168,8 @@ class SceneTreeDock : public EditorDock {
 	};
 
 	LineEdit *filter = nullptr;
+	PanelContainer *filter_pill = nullptr;
+	TextureRect *filter_pill_icon = nullptr;
 	PopupMenu *filter_quick_menu = nullptr;
 
 	PopupMenu *menu = nullptr;

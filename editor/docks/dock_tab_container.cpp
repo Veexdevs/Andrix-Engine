@@ -35,6 +35,7 @@
 #include "editor/docks/editor_dock_manager.h"
 #include "editor/editor_node.h"
 #include "editor/editor_string_names.h"
+#include "scene/string_names.h"
 #include "editor/settings/editor_settings.h"
 #include "editor/themes/editor_scale.h"
 #include "scene/resources/style_box_flat.h"
@@ -165,16 +166,60 @@ void DockTabContainer::_tab_rmb_clicked(int p_tab_idx) {
 	dock_context_popup->popup();
 }
 
+void DockTabContainer::_pin_button_toggled(bool p_pressed) {
+	if (!dock_pin_button) {
+		return;
+	}
+	EditorDock *dock = get_dock(get_current_tab());
+	if (!dock) {
+		return;
+	}
+	// The state machine lives in the dock manager (pin, then show only pinned,
+	// then unpin); force the button to show the resulting pinned state.
+	const bool pinned = EditorDockManager::get_singleton()->toggle_dock_pin(dock);
+	if (dock_pin_button->is_pressed() != pinned) {
+		dock_pin_button->set_pressed_no_signal(pinned);
+	}
+}
+
+void DockTabContainer::_close_button_pressed() {
+	EditorDock *dock = get_dock(get_current_tab());
+	if (dock) {
+		dock->close();
+	}
+}
+
+void DockTabContainer::_update_pin_button() {
+	if (!dock_pin_button) {
+		return;
+	}
+	EditorDock *dock = get_dock(get_current_tab());
+	const bool pinned = dock != nullptr && EditorDockManager::get_singleton()->is_dock_pinned(dock);
+	dock_pin_button->set_pressed_no_signal(pinned);
+}
+
 void DockTabContainer::_notification(int p_what) {
 	if (p_what == NOTIFICATION_POSTINITIALIZE) {
 		connect("pre_popup_pressed", callable_mp(this, &DockTabContainer::_pre_popup));
 		connect("child_order_changed", callable_mp(this, &DockTabContainer::update_visibility));
+	} else if (p_what == NOTIFICATION_THEME_CHANGED) {
+		if (dock_pin_button) {
+			dock_pin_button->set_button_icon(get_editor_theme_icon(SNAME("Pin")));
+		}
+		if (dock_close_button) {
+			dock_close_button->set_button_icon(get_editor_theme_icon(SNAME("Close")));
+		}
 	}
 }
 
 void DockTabContainer::update_visibility() {
-	// Hide the dock container if there are no tabs.
-	set_visible(EditorDockManager::get_singleton()->are_docks_visible() && get_tab_count() > 0);
+	// Hide the dock container if there are no tabs, or when the pin filter
+	// hides this slot (it contains no pinned docks).
+	bool show = EditorDockManager::get_singleton()->are_docks_visible() && get_tab_count() > 0;
+	if (show && dock_slot < EditorDock::DOCK_SLOT_BOTTOM) {
+		show = EditorDockManager::get_singleton()->is_dock_slot_shown(dock_slot);
+	}
+	set_visible(show);
 }
 
 DockTabContainer::TabStyle DockTabContainer::get_tab_style() const {
@@ -222,6 +267,14 @@ void DockTabContainer::load_selected_tab(int p_idx) {
 void DockTabContainer::set_dock_context_popup(DockContextPopup *p_popup) {
 	dock_context_popup = p_popup;
 	set_popup(dock_context_popup);
+	// Keep the mockup pin/close buttons right after the tab bar (before the
+	// tab container's own popup button).
+	if (dock_pin_button) {
+		get_internal_container()->move_child(dock_pin_button, 1);
+	}
+	if (dock_close_button) {
+		get_internal_container()->move_child(dock_close_button, 2);
+	}
 }
 
 void DockTabContainer::move_dock_index(EditorDock *p_dock, int p_to_index, bool p_set_current) {
@@ -270,6 +323,30 @@ DockTabContainer::DockTabContainer(EditorDock::DockSlot p_slot) {
 
 	get_tab_bar()->set_switch_on_release(true);
 	get_tab_bar()->connect("tab_rmb_clicked", callable_mp(this, &DockTabContainer::_tab_rmb_clicked));
+
+	if (p_slot < EditorDock::DOCK_SLOT_BOTTOM) {
+		// Mockup: trailing pin/close buttons on every side dock tab row.
+		dock_pin_button = memnew(Button);
+		dock_pin_button->set_toggle_mode(true);
+		dock_pin_button->set_action_mode(BaseButton::ACTION_MODE_BUTTON_PRESS);
+		dock_pin_button->set_flat(true);
+		dock_pin_button->set_focus_mode(Control::FOCUS_NONE);
+		dock_pin_button->set_tooltip_text(TTRC("Pin this dock. When any dock is pinned, only pinned docks are shown."));
+		dock_pin_button->set_accessibility_name(TTRC("Pin Dock"));
+		dock_pin_button->connect(SceneStringName(toggled), callable_mp(this, &DockTabContainer::_pin_button_toggled));
+		get_internal_container()->add_child(dock_pin_button);
+
+		dock_close_button = memnew(Button);
+		dock_close_button->set_action_mode(BaseButton::ACTION_MODE_BUTTON_PRESS);
+		dock_close_button->set_flat(true);
+		dock_close_button->set_focus_mode(Control::FOCUS_NONE);
+		dock_close_button->set_tooltip_text(TTRC("Close this dock."));
+		dock_close_button->set_accessibility_name(TTRC("Close this dock."));
+		dock_close_button->connect(SceneStringName(pressed), callable_mp(this, &DockTabContainer::_close_button_pressed));
+		get_internal_container()->add_child(dock_close_button);
+
+		connect(SceneStringName(tab_changed), callable_mp(this, &DockTabContainer::_update_pin_button).unbind(1));
+	}
 }
 
 Rect2 SideDockTabContainer::get_floating_dock_rect(EditorDock *p_dock) {

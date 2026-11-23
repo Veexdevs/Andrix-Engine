@@ -728,6 +728,7 @@ private:
 	void _add_to_main_menu(const String &p_name, PopupMenu *p_menu);
 
 	void _bottom_panel_resized();
+	void _show_scene_menu(Control *p_under);
 
 protected:
 	friend class FileSystemDock;

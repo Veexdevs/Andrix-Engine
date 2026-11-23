@@ -422,7 +422,7 @@ void EditorLog::_add_log_line(LogMessage &p_message, bool p_replace_previous) {
 			Ref<Texture2D> icon = theme_cache.error_icon;
 			log->add_image(icon);
 			log->push_bold();
-			log->add_text(U" ERROR: ");
+			log->add_text(U"[ERROR] ");
 			log->pop(); // bold
 			_set_dock_tab_icon(icon);
 		} break;
@@ -431,12 +431,19 @@ void EditorLog::_add_log_line(LogMessage &p_message, bool p_replace_previous) {
 			Ref<Texture2D> icon = theme_cache.warning_icon;
 			log->add_image(icon);
 			log->push_bold();
-			log->add_text(U" WARNING: ");
+			log->add_text(U"[WARNING] ");
 			log->pop(); // bold
 			_set_dock_tab_icon(icon);
 		} break;
 		case MSG_TYPE_EDITOR: {
-			// Distinguish editor messages from messages printed by the project
+			// Distinguish editor messages from messages printed by the project.
+			// Mockup: blue (i) icon + [INFO] tag, then the message.
+			log->push_color(get_theme_color(SNAME("accent_color"), EditorStringName(Editor)));
+			log->add_image(get_editor_theme_icon(SNAME("Info")));
+			log->push_bold();
+			log->add_text(U"[INFO] ");
+			log->pop(); // bold
+			log->pop(); // color
 			log->push_color(theme_cache.message_color);
 		} break;
 	}
@@ -620,6 +627,13 @@ EditorLog::EditorLog() {
 	editor_filter->initialize_button(TTRC("Editor Messages"), TTRC("Toggle visibility of editor messages."), callable_mp(this, &EditorLog::_set_filter_active));
 	hbox->add_child(editor_filter->toggle_button);
 	type_filter_map.insert(MSG_TYPE_EDITOR, editor_filter);
+
+	// Mockup layout: counters/filter row on top of the log; search, collapse
+	// and clear (trash) after the counters; input stays at the bottom.
+	bottom_hf->move_child(hbox, 0);
+	bottom_hf->move_child(clear_button, bottom_hf->get_child_count() - 1);
+	bottom_hf->move_child(search_box, 1);
+	vb_left->move_child(bottom_hf, 0);
 
 	add_message(GODOT_VERSION_FULL_NAME " (c) 2007-present Juan Linietsky, Ariel Manzur & Andrix Contributors.");
 

@@ -650,7 +650,7 @@ private:
 
 	/////
 
-	ToolMode tool_mode = TOOL_MODE_TRANSFORM;
+	ToolMode tool_mode = TOOL_MODE_SELECT;
 
 	RID origin_mesh;
 	RID origin_multimesh;
@@ -752,6 +752,7 @@ private:
 		MENU_VERTEX_SNAP_BASE_ORIGIN,
 		MENU_VERTEX_SNAP_SOURCE_MESH,
 		MENU_VERTEX_SNAP_SOURCE_COLLISION,
+		MENU_SUN_ENVIRONMENT_SETTINGS,
 	};
 
 	Button *tool_button[TOOL_MAX];
@@ -762,6 +763,7 @@ private:
 	MenuButton *transform_menu = nullptr;
 	PopupMenu *gizmos_menu = nullptr;
 	MenuButton *view_layout_menu = nullptr;
+	MenuButton *perspective_menu = nullptr;
 
 	AcceptDialog *accept = nullptr;
 
@@ -794,6 +796,9 @@ private:
 	void _update_vertex_snap_tooltips();
 	void _xform_dialog_action();
 	void _menu_item_pressed(int p_option);
+	void _sync_view_menu_checks();
+	void _rebuild_perspective_menu();
+	void _perspective_menu_option(int p_option);
 	void _create_scene_node(int p_kind);
 	void _grid_button_pressed();
 	Button *_add_scene_tool_button(HBoxContainer *p_box, int p_kind, const String &p_name);

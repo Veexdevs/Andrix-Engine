@@ -895,6 +895,7 @@ InspectorDock::InspectorDock(EditorData &p_editor_data) {
 	empty_icon->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
 	empty_icon->set_expand_mode(TextureRect::EXPAND_IGNORE_SIZE);
 	empty_icon->set_custom_minimum_size(Size2(96, 96) * EDSCALE);
+	empty_icon->set_modulate(Color(0.5, 0.5, 0.5)); // Mockup: dim gray empty-state cube.
 	empty_icon->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
 	empty_state->add_child(empty_icon);
 
