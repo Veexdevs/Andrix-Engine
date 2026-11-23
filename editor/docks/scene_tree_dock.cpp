@@ -30,6 +30,7 @@
 
 #include "scene_tree_dock.h"
 #include "scene/resources/style_box.h"
+#include "scene/gui/texture_rect.h"
 
 #include "core/config/project_settings.h"
 #include "core/input/input.h"
@@ -1812,7 +1813,7 @@ void SceneTreeDock::_notification(int p_what) {
 
 			// Mockup: search pill with the magnifier on the left.
 			if (filter_pill) {
-				filter_pill->add_theme_stylebox_override("panel", filter->get_theme_stylebox("normal"));
+				filter_pill->add_theme_style_override("panel", filter->get_theme_stylebox("normal"));
 			}
 			if (filter_pill_icon) {
 				filter_pill_icon->set_texture(get_editor_theme_icon(SNAME("Search")));
@@ -5086,9 +5087,9 @@ SceneTreeDock::SceneTreeDock(Node *p_scene_root, EditorSelection *p_editor_selec
 		filter_pill_icon->set_stretch_mode(TextureRect::STRETCH_KEEP_CENTERED);
 		filter_pill_icon->set_custom_minimum_size(Size2(16, 16) * EDSCALE);
 		pill_row->add_child(filter_pill_icon);
-		filter->add_theme_stylebox_override("normal", memnew(StyleBoxEmpty));
-		filter->add_theme_stylebox_override("focus", memnew(StyleBoxEmpty));
-		filter->add_theme_stylebox_override("read_only", memnew(StyleBoxEmpty));
+		filter->add_theme_style_override("normal", memnew(StyleBoxEmpty));
+		filter->add_theme_style_override("focus", memnew(StyleBoxEmpty));
+		filter->add_theme_style_override("read_only", memnew(StyleBoxEmpty));
 		pill_row->add_child(filter);
 		filter_pill->add_child(pill_row);
 	}
