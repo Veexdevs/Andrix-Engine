@@ -859,7 +859,9 @@ void EditorDockManager::_apply_pin_filter() {
 }
 
 bool EditorDockManager::toggle_dock_pin(EditorDock *p_dock) {
-	ERR_FAIL_NULL(p_dock, false);
+	if (p_dock == nullptr) {
+		return false;
+	}
 	const String key = p_dock->get_layout_key();
 	const bool was_pinned = pinned_docks.has(key) && pinned_docks[key];
 	int other_pins = 0;
