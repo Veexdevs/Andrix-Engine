@@ -8313,7 +8313,7 @@ void EditorNode::_show_scene_menu(Control *p_under) {
 	// the exact same popup the main menu uses (single source of truth).
 	const Point2 under_pos = p_under->get_screen_position();
 	const Point2 under_size = p_under->get_size();
-	file_menu->popup(Rect2i(Point2i(under_pos), Point2i(under_size)));
+	file_menu->popup(Rect2i(Point2i(under_pos.x, under_pos.y), Point2i(under_size.x, under_size.y)));
 }
 
 void EditorNode::_bottom_panel_resized() {
