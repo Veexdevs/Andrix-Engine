@@ -336,6 +336,16 @@ EditorBottomPanel::EditorBottomPanel() :
 	pin_button->set_tooltip_text(TTRC("Pin Bottom Panel Switching"));
 	pin_button->connect(SceneStringName(toggled), callable_mp(this, &EditorBottomPanel::_pin_button_toggled));
 
+	// Mockup: trailing close button on the bottom panel tab row (hides it).
+	Button *hide_button = memnew(Button);
+	bottom_hbox->add_child(hide_button);
+	hide_button->set_theme_type_variation("BottomPanelButton");
+	hide_button->set_focus_mode(Control::FOCUS_NONE);
+	hide_button->set_button_icon(get_editor_theme_icon(SNAME("Close")));
+	hide_button->set_tooltip_text(TTRC("Hide Bottom Panel"));
+	hide_button->set_accessibility_name(TTRC("Hide Bottom Panel"));
+	hide_button->connect(SceneStringName(pressed), callable_mp(this, &EditorBottomPanel::hide_bottom_panel));
+
 	callable_mp(this, &EditorBottomPanel::_repaint).call_deferred();
 }
 

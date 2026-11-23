@@ -29,6 +29,8 @@
 /**************************************************************************/
 
 #include "scene_tree_dock.h"
+#include "scene/resources/style_box.h"
+#include "scene/gui/texture_rect.h"
 
 #include "core/config/project_settings.h"
 #include "core/input/input.h"
@@ -1809,7 +1811,13 @@ void SceneTreeDock::_notification(int p_what) {
 			button_extend_script->set_button_icon(get_editor_theme_icon(SNAME("ScriptExtend")));
 			button_tree_menu->set_button_icon(get_editor_theme_icon(SNAME("GuiTabMenuHl")));
 
-			filter->set_right_icon(get_editor_theme_icon(SNAME("Search")));
+			// Mockup: search pill with the magnifier on the left.
+			if (filter_pill) {
+				filter_pill->add_theme_style_override("panel", filter->get_theme_stylebox("normal"));
+			}
+			if (filter_pill_icon) {
+				filter_pill_icon->set_texture(get_editor_theme_icon(SNAME("Search")));
+			}
 
 			// These buttons are created on READY, because reasons...
 			if (button_2d) {
@@ -5067,7 +5075,25 @@ SceneTreeDock::SceneTreeDock(Node *p_scene_root, EditorSelection *p_editor_selec
 	filter->set_placeholder(TTRC("Search objects..."));
 	filter->set_accessibility_name(TTRC("Filter Nodes"));
 	filter->set_tooltip_text(TTRC("Filter nodes by entering a part of their name, type (if prefixed with \"type:\" or \"t:\")\nor group (if prefixed with \"group:\" or \"g:\"). Filtering is case-insensitive."));
-	filter_hbc->add_child(filter);
+	// Mockup: search pill with the magnifier icon on the left, input inside
+	// a single rounded box. The pill stylebox is copied from the LineEdit
+	// theme in NOTIFICATION_THEME_CHANGED.
+	filter_pill = memnew(PanelContainer);
+	filter_pill->set_h_size_flags(SIZE_EXPAND_FILL);
+	{
+		HBoxContainer *pill_row = memnew(HBoxContainer);
+		pill_row->add_theme_constant_override("separate", 4 * EDSCALE);
+		filter_pill_icon = memnew(TextureRect);
+		filter_pill_icon->set_stretch_mode(TextureRect::STRETCH_KEEP_CENTERED);
+		filter_pill_icon->set_custom_minimum_size(Size2(16, 16) * EDSCALE);
+		pill_row->add_child(filter_pill_icon);
+		filter->add_theme_style_override("normal", memnew(StyleBoxEmpty));
+		filter->add_theme_style_override("focus", memnew(StyleBoxEmpty));
+		filter->add_theme_style_override("read_only", memnew(StyleBoxEmpty));
+		pill_row->add_child(filter);
+		filter_pill->add_child(pill_row);
+	}
+	filter_hbc->add_child(filter_pill);
 	filter->add_theme_constant_override("minimum_character_width", 0);
 	filter->connect(SceneStringName(text_changed), callable_mp(this, &SceneTreeDock::_filter_changed));
 	filter->connect(SceneStringName(gui_input), callable_mp(this, &SceneTreeDock::_filter_gui_input));

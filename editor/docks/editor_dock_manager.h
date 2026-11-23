@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include "core/templates/hash_map.h"
 #include "editor/docks/editor_dock.h"
 #include "scene/gui/popup.h"
 #include "scene/gui/split_container.h"
@@ -103,6 +104,10 @@ private:
 	EditorDock *dock_tab_dragged = nullptr;
 	bool docks_visible = true;
 
+	// Mockup pin filter: session-only set of pinned docks per layout key.
+	HashMap<String, bool> pinned_docks;
+	bool pin_filter_active = false;
+
 	DockContextPopup *dock_context_popup = nullptr;
 	PopupMenu *docks_menu = nullptr;
 	LocalVector<EditorDock *> docks_menu_docks;
@@ -152,6 +157,11 @@ public:
 
 	void set_docks_visible(bool p_show);
 	bool are_docks_visible() const;
+
+	bool toggle_dock_pin(EditorDock *p_dock);
+	bool is_dock_pinned(EditorDock *p_dock) const;
+	bool is_dock_slot_shown(EditorDock::DockSlot p_slot) const;
+	void _apply_pin_filter();
 
 	void add_dock(EditorDock *p_dock);
 	void remove_dock(EditorDock *p_dock);

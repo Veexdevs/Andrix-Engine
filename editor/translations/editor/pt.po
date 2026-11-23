@@ -12394,10 +12394,10 @@ msgid "Freelook Slow Modifier"
 msgstr "Freelook Modificador de Lentidão"
 
 msgid "View"
-msgstr "Vista"
+msgstr "Visualizar"
 
 msgid "Perspective"
-msgstr "Perspetiva"
+msgstr "Perspectiva"
 
 msgid "Orthogonal"
 msgstr "Ortogonal"
@@ -23406,7 +23406,7 @@ msgid "Select an object to view its properties."
 msgstr "Selecione um objeto para ver suas propriedades."
 
 msgid "Type a command..."
-msgstr "Digite um comando..."
+msgstr "Digite uma mensagem..."
 
 msgid "Command not found: %s"
 msgstr "Comando não encontrado: %s"
@@ -23428,3 +23428,12 @@ msgstr "Executar Comando"
 
 msgid "Search objects..."
 msgstr "Pesquisar objetos..."
+
+msgid "Pin this dock. When any dock is pinned, only pinned docks are shown."
+msgstr "Fixar este dock. Quando algum dock está fixado, apenas os fixados são mostrados."
+
+msgid "Pin Dock"
+msgstr "Fixar dock"
+
+msgid "Hide Bottom Panel"
+msgstr "Ocultar Painel Inferior"

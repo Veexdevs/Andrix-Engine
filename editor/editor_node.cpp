@@ -8250,7 +8250,10 @@ void EditorNode::_update_main_menu_type() {
 	// Create new menu.
 	if (new_menu_type == MENU_TYPE_COMPACT) {
 		main_menu_button = memnew(MenuButton);
-		main_menu_button->set_text(TTRC("Main Menu"));
+		// Mockup: dropdown chevron after the label (MenuButton draws none).
+		main_menu_button->set_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);
+		main_menu_button->set_text(TTR("Main Menu") + " \u2304");
+		main_menu_button->set_accessibility_name(TTR("Main Menu"));
 		main_menu_button->set_theme_type_variation("MainScreenButton");
 		main_menu_button->set_focus_mode(Control::FOCUS_NONE);
 		if (is_inside_tree()) {
@@ -8300,6 +8303,17 @@ void EditorNode::_update_main_menu_type() {
 	if (project_title) {
 		project_title->set_visible(can_expand && menu_type == MENU_TYPE_GLOBAL);
 	}
+}
+
+void EditorNode::_show_scene_menu(Control *p_under) {
+	if (!file_menu || !p_under) {
+		return;
+	}
+	// Opens the Scene menu (file_menu) right under the "Cena" button, sharing
+	// the exact same popup the main menu uses (single source of truth).
+	const Point2 under_pos = p_under->get_screen_position();
+	const Point2 under_size = p_under->get_size();
+	file_menu->popup(Rect2i(Point2i(under_pos.x, under_pos.y), Point2i(under_size.x, under_size.y)));
 }
 
 void EditorNode::_bottom_panel_resized() {
@@ -8784,6 +8798,11 @@ EditorNode::EditorNode() {
 				{ "Search", TTRC("Find in Files"), PROJECT_FIND_IN_FILES },
 				{ "Tools", TTRC("Command Palette"), EDITOR_COMMAND_PALETTE },
 		});
+
+		// The ribbon bar is hidden to match the reference mockup. All of its
+		// actions remain reachable through the top menus (Scene, Project,
+		// Debug, Editor, Help) and the viewport context menus.
+		ribbon_panel->set_visible(false);
 	}
 
 	DockSplitContainer *main_vsplit = memnew(DockSplitContainer);
@@ -9200,6 +9219,19 @@ EditorNode::EditorNode() {
 	title_bar->add_child(main_editor_button_hb);
 	title_bar->set_center_control(main_editor_button_hb);
 
+	// "Cena" quick menu button (first item of the center title area, before the
+	// main screens). Opens the same Scene menu used by the main menu bar.
+	Button *scene_menu_button = memnew(Button);
+	scene_menu_button->set_theme_type_variation("MainScreenButton");
+	scene_menu_button->set_focus_mode(Control::FOCUS_NONE);
+	scene_menu_button->set_button_icon(theme->get_icon(SNAME("BoxMesh"), EditorStringName(EditorIcons)));
+	scene_menu_button->set_text(TTRC("Scene")); // Translated to "Cena" (pt).
+	scene_menu_button->set_tooltip_text(TTRC("Scene menu."));
+	scene_menu_button->set_accessibility_name(TTRC("Scene menu."));
+	scene_menu_button->connect(SceneStringName(pressed), callable_mp(this, &EditorNode::_show_scene_menu).bind(scene_menu_button));
+	main_editor_button_hb->add_child(scene_menu_button);
+	main_editor_button_hb->move_child(scene_menu_button, 0);
+
 	// Spacer to center 2D / 3D / Script buttons.
 	right_spacer = memnew(Control);
 	right_spacer->set_mouse_filter(Control::MOUSE_FILTER_PASS);
@@ -9330,10 +9362,15 @@ EditorNode::EditorNode() {
 	editor_dock_manager->add_dock(history_dock);
 
 	// Add some offsets to make LEFT_R and RIGHT_L docks wider than minsize.
-	const int dock_hsize = 280;
-	// By default there is only 3 visible, so set 2 split offsets for them.
-	const int dock_hsize_scaled = dock_hsize * EDSCALE;
-	main_hsplit->set_split_offsets({ dock_hsize_scaled, -dock_hsize_scaled });
+	// Dock proportions follow the reference mockup: left ≈18.7%, right ≈23.7%
+	// of the screen width.
+	int dock_screen_w = DisplayServer::get_singleton()->screen_get_size().x;
+	if (dock_screen_w <= 0) {
+		dock_screen_w = 1600;
+	}
+	const int dock_hsize = MAX(200, dock_screen_w * 187 / 1000);
+	const int dock_rsize = MAX(240, dock_screen_w * 237 / 1000);
+	main_hsplit->set_split_offsets({ dock_hsize, -dock_rsize });
 
 	// Define corresponding default layout.
 
@@ -9363,7 +9400,7 @@ EditorNode::EditorNode() {
 		default_layout->set_value(docks_section, "dock_5_selected_tab_idx", 0);
 	}
 
-	int hsplits[] = { 0, dock_hsize, -dock_hsize, 0 };
+	int hsplits[] = { 0, dock_hsize, -dock_rsize, 0 };
 	for (int i = 0; i < (int)std_size(hsplits); i++) {
 		default_layout->set_value(docks_section, "dock_hsplit_" + itos(i + 1), hsplits[i]);
 	}

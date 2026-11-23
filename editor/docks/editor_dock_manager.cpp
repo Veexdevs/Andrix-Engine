@@ -650,6 +650,7 @@ void EditorDockManager::close_dock(EditorDock *p_dock) {
 	_move_dock(p_dock, closed_dock_parent);
 
 	_update_layout();
+	_apply_pin_filter();
 }
 
 void EditorDockManager::open_dock(EditorDock *p_dock, bool p_set_current) {
@@ -816,6 +817,99 @@ void EditorDockManager::register_dock_slot(DockTabContainer *p_tab_container) {
 	p_tab_container->set_dock_context_popup(dock_context_popup);
 	p_tab_container->connect("tab_changed", callable_mp(this, &EditorDockManager::_update_layout).unbind(1));
 	p_tab_container->connect("active_tab_rearranged", callable_mp(this, &EditorDockManager::_update_layout).unbind(1));
+}
+
+void EditorDockManager::_apply_pin_filter() {
+	// Self-heal: if nothing is pinned anymore, drop the filter.
+	int total_pins = 0;
+	for (const KeyValue<String, bool> &E : pinned_docks) {
+		if (E.value) {
+			total_pins++;
+		}
+	}
+	if (total_pins == 0) {
+		pin_filter_active = false;
+	}
+
+	for (int i = 0; i < EditorDock::DOCK_SLOT_BOTTOM; i++) {
+		DockTabContainer *container = dock_slots[i];
+		if (!container) {
+			continue;
+		}
+		TabBar *tab_bar = container->get_tab_bar();
+		for (int t = 0; t < container->get_tab_count(); t++) {
+			EditorDock *dock = container->get_dock(t);
+			const bool pinned = dock != nullptr && pinned_docks.has(dock->get_layout_key()) && pinned_docks[dock->get_layout_key()];
+			tab_bar->set_tab_hidden(t, pin_filter_active && !pinned);
+		}
+		container->update_visibility();
+		// If the active tab got hidden, switch to the first visible tab.
+		if (pin_filter_active) {
+			const int cur = container->get_current_tab();
+			if (cur >= 0 && tab_bar->is_tab_hidden(cur)) {
+				for (int t = 0; t < container->get_tab_count(); t++) {
+					if (!tab_bar->is_tab_hidden(t)) {
+						container->set_current_tab(t);
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+bool EditorDockManager::toggle_dock_pin(EditorDock *p_dock) {
+	if (p_dock == nullptr) {
+		return false;
+	}
+	const String key = p_dock->get_layout_key();
+	const bool was_pinned = pinned_docks.has(key) && pinned_docks[key];
+	int other_pins = 0;
+	for (const KeyValue<String, bool> &E : pinned_docks) {
+		if (E.value && E.key != key) {
+			other_pins++;
+		}
+	}
+	if (!was_pinned) {
+		// Pin this dock; if other docks are already pinned, show only pinned.
+		pinned_docks[key] = true;
+		if (other_pins > 0) {
+			pin_filter_active = true;
+		}
+	} else if (pin_filter_active) {
+		// Pinned with the filter on: turn the filter off (keep pinned).
+		pin_filter_active = false;
+	} else {
+		// Pinned with the filter off: unpin.
+		pinned_docks.erase(key);
+	}
+	_apply_pin_filter();
+	return pinned_docks.has(key) && pinned_docks[key];
+}
+
+bool EditorDockManager::is_dock_pinned(EditorDock *p_dock) const {
+	if (!p_dock) {
+		return false;
+	}
+	const String key = p_dock->get_layout_key();
+	return pinned_docks.has(key) && pinned_docks[key];
+}
+
+bool EditorDockManager::is_dock_slot_shown(EditorDock::DockSlot p_slot) const {
+	if (!pin_filter_active || p_slot >= EditorDock::DOCK_SLOT_BOTTOM) {
+		return true;
+	}
+	const DockTabContainer *container = dock_slots[p_slot];
+	if (!container) {
+		return true;
+	}
+	for (int t = 0; t < container->get_tab_count(); t++) {
+		const EditorDock *dock = container->get_dock(t);
+		if (dock && pinned_docks.has(dock->get_layout_key()) && pinned_docks[dock->get_layout_key()]) {
+			return true;
+		}
+	}
+	return false;
 }
 
 int EditorDockManager::get_vsplit_count() const {

@@ -3901,7 +3901,8 @@ void Node3DEditorViewport::_notification(int p_what) {
 		case NOTIFICATION_THEME_CHANGED: {
 			_update_centered_labels();
 
-			view_display_menu->set_button_icon(get_editor_theme_icon(SNAME("GuiTabMenuHlDarkBackground")));
+			// Mockup: the view chip shows a wireframe cube icon.
+			view_display_menu->set_button_icon(get_editor_theme_icon(SNAME("BoxMesh")));
 			preview_camera->set_button_icon(get_editor_theme_icon(SNAME("Camera3DDarkBackground")));
 			pilot_camera->set_button_icon(get_editor_theme_icon(SNAME("3D")));
 			Control *gui_base = EditorNode::get_singleton()->get_gui_base();
@@ -7838,7 +7839,7 @@ void Node3DEditor::set_state(const Dictionary &p_state) {
 		_update_preview_environment();
 	} else {
 		_load_default_preview_settings();
-		sun_button->set_pressed(true);
+		sun_button->set_pressed(false);
 		environ_button->set_pressed(true);
 		_preview_settings_changed();
 		_update_preview_environment();
@@ -7903,7 +7904,7 @@ void Node3DEditor::_snap_update() {
 
 void Node3DEditor::_update_vertex_snap_tooltips() {
 	String snap_key = ED_GET_SHORTCUT("spatial_editor/vertex_snap")->get_as_text();
-	PopupMenu *p = transform_menu->get_popup();
+	PopupMenu *p = view_layout_menu->get_popup();
 	p->set_item_tooltip(p->get_item_index(MENU_VERTEX_SNAP_BASE_VERTEX),
 			vformat(TTR("Hold %s to highlight a vertex on the currently selected node,\nthen drag to move the node and snap it to vertices on neighboring nodes.\n\nFor nodes without a vertex-based representation,\nSnap Origin to Vertex is always used instead."), snap_key));
 	p->set_item_tooltip(p->get_item_index(MENU_VERTEX_SNAP_BASE_ORIGIN),
@@ -7996,6 +7997,87 @@ void Node3DEditor::_menu_item_toggled(bool pressed, int p_option) {
 	}
 }
 
+void Node3DEditor::_sync_view_menu_checks() {
+	if (!view_layout_menu) {
+		return;
+	}
+	PopupMenu *p = view_layout_menu->get_popup();
+	// Mirror the hidden toolbar toggle states into the menu check items.
+	if (p->get_item_index(MENU_TOOL_LOCAL_COORDS) >= 0) {
+		p->set_item_checked(p->get_item_index(MENU_TOOL_LOCAL_COORDS), tool_option_button[TOOL_OPT_LOCAL_COORDS]->is_pressed());
+	}
+	if (p->get_item_index(MENU_TOOL_USE_SNAP) >= 0) {
+		p->set_item_checked(p->get_item_index(MENU_TOOL_USE_SNAP), tool_option_button[TOOL_OPT_USE_SNAP]->is_pressed());
+	}
+	if (p->get_item_index(MENU_TOOL_USE_TRACKBALL) >= 0) {
+		p->set_item_checked(p->get_item_index(MENU_TOOL_USE_TRACKBALL), tool_option_button[TOOL_OPT_USE_TRACKBALL]->is_pressed());
+	}
+	if (p->get_item_index(MENU_TOOL_PRESERVE_CHILDREN_TRANSFORM) >= 0) {
+		p->set_item_checked(p->get_item_index(MENU_TOOL_PRESERVE_CHILDREN_TRANSFORM), tool_option_button[TOOL_OPT_PRESERVE_CHILDREN_TRANSFORM]->is_pressed());
+	}
+}
+
+void Node3DEditor::_rebuild_perspective_menu() {
+	if (!perspective_menu || viewports[0] == nullptr || viewports[0]->view_display_menu == nullptr) {
+		return;
+	}
+	PopupMenu *dst = perspective_menu->get_popup();
+	PopupMenu *src = viewports[0]->view_display_menu->get_popup();
+	dst->set_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);
+	dst->clear();
+	for (int i = 0; i < src->get_item_count(); i++) {
+		if (src->is_item_separator(i)) {
+			dst->add_separator(src->get_item_text(i));
+			continue;
+		}
+		const int id = src->get_item_id(i);
+		const String text = src->get_item_text(i);
+		const Ref<Texture2D> icon = src->get_item_icon(i);
+		const Ref<Shortcut> sc = src->get_item_shortcut(i);
+		PopupMenu *submenu = src->get_item_submenu_node(i);
+		// PopupMenu::add_* return void in this version; index the item after adding.
+		int idx = -1;
+		if (submenu != nullptr) {
+			dst->add_submenu_node_item(text, submenu, id);
+			idx = dst->get_item_count() - 1;
+		} else if (sc.is_valid()) {
+			if (src->is_item_radio_checkable(i)) {
+				dst->add_radio_check_shortcut(sc, id);
+			} else if (src->is_item_checkable(i)) {
+				dst->add_check_shortcut(sc, id);
+			} else {
+				dst->add_shortcut(sc, id);
+			}
+			idx = dst->get_item_count() - 1;
+		} else {
+			if (src->is_item_radio_checkable(i)) {
+				dst->add_radio_check_item(text, id);
+			} else if (src->is_item_checkable(i)) {
+				dst->add_check_item(text, id);
+			} else {
+				dst->add_item(text, id);
+			}
+			idx = dst->get_item_count() - 1;
+			if (icon.is_valid()) {
+				dst->set_item_icon(idx, icon);
+			}
+		}
+		if (idx >= 0) {
+			dst->set_item_checked(idx, src->is_item_checked(i));
+			dst->set_item_disabled(idx, src->is_item_disabled(i));
+			dst->set_item_tooltip(idx, src->get_item_tooltip(i));
+		}
+	}
+}
+
+void Node3DEditor::_perspective_menu_option(int p_option) {
+	// The pill is a global toolbar control; dispatch to the main viewport
+	// (single-viewport layouts are the default). Per-viewport chips stay exact.
+	if (viewports[0] != nullptr) {
+		viewports[0]->_menu_option(p_option);
+	}
+}
+
 void Node3DEditor::_undo_redo_inspector_callback(Object *p_undo_redo, Object *p_edited, const String &p_property, const Variant &p_new_value) {
 	Node3D *node = Object::cast_to<Node3D>(p_edited);
 	if (!node) {
@@ -8075,6 +8157,41 @@ void Node3DEditor::_menu_item_pressed(int p_option) {
 			for (uint32_t i = 0; i < VIEWPORTS_COUNT; i++) {
 				viewports[i]->update_transform_gizmo_highlight();
 			}
+		} break;
+		case MENU_TOOL_LOCAL_COORDS:
+		case MENU_TOOL_USE_SNAP:
+		case MENU_TOOL_USE_TRACKBALL:
+		case MENU_TOOL_PRESERVE_CHILDREN_TRANSFORM: {
+			// Menu entries mirror the (hidden) toolbar toggle buttons.
+			Button *opt_button = nullptr;
+			switch (p_option) {
+				case MENU_TOOL_LOCAL_COORDS:
+					opt_button = tool_option_button[TOOL_OPT_LOCAL_COORDS];
+					break;
+				case MENU_TOOL_USE_SNAP:
+					opt_button = tool_option_button[TOOL_OPT_USE_SNAP];
+					break;
+				case MENU_TOOL_USE_TRACKBALL:
+					opt_button = tool_option_button[TOOL_OPT_USE_TRACKBALL];
+					break;
+				case MENU_TOOL_PRESERVE_CHILDREN_TRANSFORM:
+					opt_button = tool_option_button[TOOL_OPT_PRESERVE_CHILDREN_TRANSFORM];
+					break;
+			}
+			if (opt_button) {
+				const bool new_state = !opt_button->is_pressed();
+				opt_button->set_pressed(new_state);
+				if (view_layout_menu) {
+					PopupMenu *menu_popup = view_layout_menu->get_popup();
+					const int item_idx = menu_popup->get_item_index(p_option);
+					if (item_idx >= 0) {
+						menu_popup->set_item_checked(item_idx, new_state);
+					}
+				}
+			}
+		} break;
+		case MENU_SUN_ENVIRONMENT_SETTINGS: {
+			_sun_environ_settings_pressed();
 		} break;
 		case MENU_TRANSFORM_CONFIGURE_SNAP: {
 			snap_dialog->popup_centered(Size2(200, 180));
@@ -8331,7 +8448,7 @@ void Node3DEditor::_menu_item_pressed(int p_option) {
 void Node3DEditor::_init_indicators() {
 	{
 		origin_enabled = true;
-		grid_enabled = true;
+		grid_enabled = false; // Mockup default: grid off (white icon).
 
 		Ref<Shader> origin_shader = memnew(Shader);
 		origin_shader->set_code(R"(
@@ -10184,8 +10301,8 @@ void Node3DEditor::clear() {
 		viewports[i]->viewport->set_as_audio_listener_3d(i == 0);
 	}
 
-	view_layout_menu->get_popup()->set_item_checked(view_layout_menu->get_popup()->get_item_index(MENU_VIEW_GRID), true);
-	grid_enabled = true;
+	view_layout_menu->get_popup()->set_item_checked(view_layout_menu->get_popup()->get_item_index(MENU_VIEW_GRID), false);
+	grid_enabled = false;
 	grid_init_draw = false;
 }
 
@@ -10629,7 +10746,7 @@ Node3DEditor::Node3DEditor() {
 	main_menu_hbox->add_child(tool_button[TOOL_MODE_TRANSFORM]);
 	tool_button[TOOL_MODE_TRANSFORM]->set_toggle_mode(true);
 	tool_button[TOOL_MODE_TRANSFORM]->set_theme_type_variation(SceneStringName(FlatButton));
-	tool_button[TOOL_MODE_TRANSFORM]->set_pressed(true);
+	tool_button[TOOL_MODE_TRANSFORM]->set_pressed(false);
 	tool_button[TOOL_MODE_TRANSFORM]->connect(SceneStringName(pressed), callable_mp(this, &Node3DEditor::_menu_item_pressed).bind(MENU_TOOL_TRANSFORM));
 	tool_button[TOOL_MODE_TRANSFORM]->set_shortcut(ED_SHORTCUT("spatial_editor/tool_transform", TTRC("Transform Mode"), Key::Q, true));
 	tool_button[TOOL_MODE_TRANSFORM]->set_shortcut_context(this);
@@ -10671,6 +10788,7 @@ Node3DEditor::Node3DEditor() {
 	tool_button[TOOL_MODE_SELECT]->set_toggle_mode(true);
 	tool_button[TOOL_MODE_SELECT]->set_tooltip_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);
 	tool_button[TOOL_MODE_SELECT]->set_theme_type_variation(SceneStringName(FlatButton));
+	tool_button[TOOL_MODE_SELECT]->set_pressed(true);
 	tool_button[TOOL_MODE_SELECT]->connect(SceneStringName(pressed), callable_mp(this, &Node3DEditor::_menu_item_pressed).bind(MENU_TOOL_SELECT));
 	tool_button[TOOL_MODE_SELECT]->set_shortcut(ED_SHORTCUT("spatial_editor/tool_select", TTRC("Select Mode"), Key::V, true));
 	tool_button[TOOL_MODE_SELECT]->set_shortcut_context(this);
@@ -10743,7 +10861,8 @@ Node3DEditor::Node3DEditor() {
 	tool_button[TOOL_RULER]->set_shortcut(ED_SHORTCUT("spatial_editor/measure", TTRC("Ruler Mode"), Key::M));
 	tool_button[TOOL_RULER]->set_accessibility_name(TTRC("Ruler Mode"));
 
-	main_menu_hbox->add_child(memnew(VSeparator));
+	VSeparator *tool_options_sep = memnew(VSeparator);
+	main_menu_hbox->add_child(tool_options_sep);
 
 	tool_option_button[TOOL_OPT_LOCAL_COORDS] = memnew(Button);
 	main_menu_hbox->add_child(tool_option_button[TOOL_OPT_LOCAL_COORDS]);
@@ -10782,39 +10901,41 @@ Node3DEditor::Node3DEditor() {
 	tool_option_button[TOOL_OPT_PRESERVE_CHILDREN_TRANSFORM]->set_accessibility_name(TTRC("Preserve Children Transform"));
 	tool_option_button[TOOL_OPT_PRESERVE_CHILDREN_TRANSFORM]->set_tooltip_text(TTRC("When enabled, transforming a node will preserve the global transform of its children.\nThis also applies when editing transform properties in the Inspector."));
 
-	main_menu_hbox->add_child(memnew(VSeparator));
+	VSeparator *grid_sep = memnew(VSeparator);
+	main_menu_hbox->add_child(grid_sep);
 
 	// Grid toggle (design reference: visualization group).
 	grid_button = memnew(Button);
 	grid_button->set_toggle_mode(true);
 	grid_button->set_theme_type_variation(SceneStringName(FlatButton));
-	grid_button->set_pressed(true); // Grid is enabled by default (set below in the View menu).
+	grid_button->set_pressed(false); // Mockup: grid starts disabled (white icon); saved state wins on load.
 	grid_button->set_tooltip_text(TTRC("Toggle the 3D grid."));
 	grid_button->set_accessibility_name(TTRC("Toggle Grid"));
 	grid_button->connect(SceneStringName(pressed), callable_mp(this, &Node3DEditor::_grid_button_pressed));
 	main_menu_hbox->add_child(grid_button);
 
-	sun_button = memnew(Button);
-	sun_button->set_tooltip_text(TTRC("Toggle preview sunlight.\nIf a DirectionalLight3D node is added to the scene, preview sunlight is disabled."));
-	sun_button->set_toggle_mode(true);
-	sun_button->set_accessibility_name(TTRC("Toggle preview sunlight."));
-	sun_button->set_theme_type_variation(SceneStringName(FlatButton));
-	sun_button->connect(SceneStringName(pressed), callable_mp(this, &Node3DEditor::_update_preview_environment), CONNECT_DEFERRED);
-	// Preview is enabled by default - ensure this applies on editor startup when there is no state yet.
-	sun_button->set_pressed(true);
-
-	main_menu_hbox->add_child(sun_button);
-
+	// Environment preview is enabled by default (mockup: highlighted globe).
 	environ_button = memnew(Button);
 	environ_button->set_tooltip_text(TTRC("Toggle preview environment.\nIf a WorldEnvironment node is added to the scene, preview environment is disabled."));
 	environ_button->set_toggle_mode(true);
 	environ_button->set_accessibility_name(TTRC("Toggle preview environment."));
 	environ_button->set_theme_type_variation(SceneStringName(FlatButton));
 	environ_button->connect(SceneStringName(pressed), callable_mp(this, &Node3DEditor::_update_preview_environment), CONNECT_DEFERRED);
-	// Preview is enabled by default - ensure this applies on editor startup when there is no state yet.
 	environ_button->set_pressed(true);
 
 	main_menu_hbox->add_child(environ_button);
+
+	// Sunlight preview is disabled by default to match the reference mockup
+	// (sun icon renders unpressed). Saved state still wins on load.
+	sun_button = memnew(Button);
+	sun_button->set_tooltip_text(TTRC("Toggle preview sunlight.\nIf a DirectionalLight3D node is added to the scene, preview sunlight is disabled."));
+	sun_button->set_toggle_mode(true);
+	sun_button->set_accessibility_name(TTRC("Toggle preview sunlight."));
+	sun_button->set_theme_type_variation(SceneStringName(FlatButton));
+	sun_button->connect(SceneStringName(pressed), callable_mp(this, &Node3DEditor::_update_preview_environment), CONNECT_DEFERRED);
+	sun_button->set_pressed(false);
+
+	main_menu_hbox->add_child(sun_button);
 
 	sun_environ_settings = memnew(Button);
 	sun_environ_settings->set_tooltip_text(TTRC("Edit Sun and Environment settings."));
@@ -10867,37 +10988,23 @@ Node3DEditor::Node3DEditor() {
 	transform_menu->set_shortcut_context(this);
 	main_menu_hbox->add_child(transform_menu);
 
-	p = transform_menu->get_popup();
-	p->add_shortcut(ED_SHORTCUT("spatial_editor/snap_to_floor", TTRC("Snap Object to Floor"), Key::PAGEDOWN), MENU_SNAP_TO_FLOOR);
-	p->add_shortcut(ED_SHORTCUT("spatial_editor/transform_dialog", TTRC("Transform Dialog...")), MENU_TRANSFORM_DIALOG);
-
-	p->add_separator();
-	ED_SHORTCUT("spatial_editor/vertex_snap", TTRC("Vertex Snap"), Key::B);
-	p->add_radio_check_item(TTRC("Snap Vertex to Vertex"), MENU_VERTEX_SNAP_BASE_VERTEX);
-	p->set_item_checked(p->get_item_index(MENU_VERTEX_SNAP_BASE_VERTEX), true);
-	p->add_radio_check_item(TTRC("Snap Origin to Vertex"), MENU_VERTEX_SNAP_BASE_ORIGIN);
-
-	p->add_separator();
-	p->add_radio_check_item(TTRC("Snap to Mesh Vertices"), MENU_VERTEX_SNAP_SOURCE_MESH);
-	p->set_item_checked(p->get_item_index(MENU_VERTEX_SNAP_SOURCE_MESH), true);
-	p->add_radio_check_item(TTRC("Snap to Collision Vertices"), MENU_VERTEX_SNAP_SOURCE_COLLISION);
-	_update_vertex_snap_tooltips();
-
-	p->add_separator();
-	p->add_shortcut(ED_SHORTCUT("spatial_editor/configure_snap", TTRC("Configure Snap...")), MENU_TRANSFORM_CONFIGURE_SNAP);
-
-	p->connect(SceneStringName(id_pressed), callable_mp(this, &Node3DEditor::_menu_item_pressed));
+	// The former Transform menu items were relocated into the Visualizar
+	// menu below (the Transform button itself is hidden by the mockup).
 
 	view_layout_menu = memnew(MenuButton);
 	view_layout_menu->set_flat(false);
 	view_layout_menu->set_theme_type_variation("FlatMenuButton");
+	// Mockup: dropdown chevron on the right edge of the pill.
+	view_layout_menu->set_button_icon(get_editor_theme_icon(SNAME("GuiDropdown")));
+	view_layout_menu->set_icon_alignment(HORIZONTAL_ALIGNMENT_RIGHT);
 	// TRANSLATORS: Noun, name of the 2D/3D View menus.
 	view_layout_menu->set_text(TTRC("View"));
 	view_layout_menu->set_switch_on_hover(true);
 	view_layout_menu->set_shortcut_context(this);
 	main_menu_hbox->add_child(view_layout_menu);
 
-	main_menu_hbox->add_child(memnew(VSeparator));
+	VSeparator *context_toolbar_sep = memnew(VSeparator);
+	main_menu_hbox->add_child(context_toolbar_sep);
 
 	context_toolbar_panel = memnew(PanelContainer);
 	context_toolbar_hbox = memnew(HBoxContainer);
@@ -10936,9 +11043,80 @@ Node3DEditor::Node3DEditor() {
 	p->add_shortcut(ED_SHORTCUT("spatial_editor/settings", TTRC("Settings...")), MENU_VIEW_CAMERA_SETTINGS);
 
 	p->set_item_checked(p->get_item_index(MENU_VIEW_ORIGIN), true);
-	p->set_item_checked(p->get_item_index(MENU_VIEW_GRID), true);
+	p->set_item_checked(p->get_item_index(MENU_VIEW_GRID), false);
 
+	// --- Relocated from the hidden toolbar (mockup compatibility). ---
+	p->add_separator(TTRC("Transform"));
+	p->add_shortcut(ED_SHORTCUT("spatial_editor/snap_to_floor", TTRC("Snap Object to Floor"), Key::PAGEDOWN), MENU_SNAP_TO_FLOOR);
+	p->add_shortcut(ED_SHORTCUT("spatial_editor/transform_dialog", TTRC("Transform Dialog...")), MENU_TRANSFORM_DIALOG);
+
+	p->add_separator();
+	ED_SHORTCUT("spatial_editor/vertex_snap", TTRC("Vertex Snap"), Key::B);
+	p->add_radio_check_item(TTRC("Snap Vertex to Vertex"), MENU_VERTEX_SNAP_BASE_VERTEX);
+	p->set_item_checked(p->get_item_index(MENU_VERTEX_SNAP_BASE_VERTEX), true);
+	p->add_radio_check_item(TTRC("Snap Origin to Vertex"), MENU_VERTEX_SNAP_BASE_ORIGIN);
+
+	p->add_separator();
+	p->add_radio_check_item(TTRC("Snap to Mesh Vertices"), MENU_VERTEX_SNAP_SOURCE_MESH);
+	p->set_item_checked(p->get_item_index(MENU_VERTEX_SNAP_SOURCE_MESH), true);
+	p->add_radio_check_item(TTRC("Snap to Collision Vertices"), MENU_VERTEX_SNAP_SOURCE_COLLISION);
+	_update_vertex_snap_tooltips();
+
+	p->add_separator();
+	p->add_shortcut(ED_SHORTCUT("spatial_editor/configure_snap", TTRC("Configure Snap...")), MENU_TRANSFORM_CONFIGURE_SNAP);
+
+	p->add_separator(TTRC("Tools"));
+	p->add_item(TTRC("Show List of Selectable Nodes"), MENU_TOOL_LIST_SELECT);
+	p->add_item(TTRC("Lock"), MENU_LOCK_SELECTED);
+	p->add_item(TTRC("Unlock"), MENU_UNLOCK_SELECTED);
+	p->add_item(TTRC("Group"), MENU_GROUP_SELECTED);
+	p->add_item(TTRC("Ungroup"), MENU_UNGROUP_SELECTED);
+	p->add_item(TTRC("Ruler Mode"), MENU_RULER);
+	p->add_separator();
+	p->add_check_item(TTRC("Use Local Space"), MENU_TOOL_LOCAL_COORDS);
+	p->add_check_item(TTRC("Use Snap"), MENU_TOOL_USE_SNAP);
+	p->add_check_item(TTRC("Use Trackball"), MENU_TOOL_USE_TRACKBALL);
+	p->add_check_item(TTRC("Preserve Children Transform"), MENU_TOOL_PRESERVE_CHILDREN_TRANSFORM);
+	p->add_item(TTRC("Edit Sun and Environment settings."), MENU_SUN_ENVIRONMENT_SETTINGS);
+
+	p->connect("about_to_popup", callable_mp(this, &Node3DEditor::_sync_view_menu_checks));
 	p->connect(SceneStringName(id_pressed), callable_mp(this, &Node3DEditor::_menu_item_pressed));
+
+	/* Mockup toolbar reduction: these controls are hidden; every action stays
+	   available through the Visualizar menu and the viewport menus. */
+	tool_button[TOOL_MODE_TRANSFORM]->set_visible(false);
+	main_menu_hbox->move_child(tool_button[TOOL_MODE_SELECT], 0);
+	tool_button[TOOL_MODE_LIST_SELECT]->set_visible(false);
+	tool_button[TOOL_LOCK_SELECTED]->set_visible(false);
+	tool_button[TOOL_UNLOCK_SELECTED]->set_visible(false);
+	tool_button[TOOL_GROUP_SELECTED]->set_visible(false);
+	tool_button[TOOL_UNGROUP_SELECTED]->set_visible(false);
+	tool_button[TOOL_RULER]->set_visible(false);
+	tool_option_button[TOOL_OPT_LOCAL_COORDS]->set_visible(false);
+	tool_option_button[TOOL_OPT_USE_SNAP]->set_visible(false);
+	tool_option_button[TOOL_OPT_USE_TRACKBALL]->set_visible(false);
+	tool_option_button[TOOL_OPT_PRESERVE_CHILDREN_TRANSFORM]->set_visible(false);
+	sun_environ_settings->set_visible(false);
+	transform_menu->set_visible(false);
+	tool_options_sep->set_visible(false);
+	grid_sep->set_visible(false);
+	context_toolbar_sep->set_visible(false);
+
+	// "Perspectiva" pill: quick view-type menu (mirrors the viewport chip).
+	perspective_menu = memnew(MenuButton);
+	perspective_menu->set_flat(false);
+	perspective_menu->set_theme_type_variation("FlatMenuButton");
+	// Mockup: dropdown chevron on the right edge of the pill.
+	perspective_menu->set_button_icon(get_editor_theme_icon(SNAME("GuiDropdown")));
+	perspective_menu->set_icon_alignment(HORIZONTAL_ALIGNMENT_RIGHT);
+	perspective_menu->set_text(TTRC("Perspective")); // "Perspectiva" (pt).
+	perspective_menu->set_switch_on_hover(true);
+	perspective_menu->set_shortcut_context(this);
+	main_menu_hbox->add_child(perspective_menu);
+	main_menu_hbox->move_child(perspective_menu, view_layout_menu->get_index());
+	perspective_menu->get_popup()->set_hide_on_checkable_item_selection(false);
+	perspective_menu->get_popup()->connect("about_to_popup", callable_mp(this, &Node3DEditor::_rebuild_perspective_menu));
+	perspective_menu->get_popup()->connect(SceneStringName(id_pressed), callable_mp(this, &Node3DEditor::_perspective_menu_option));
 
 	/* REST OF MENU */
 
