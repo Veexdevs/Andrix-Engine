@@ -8035,24 +8035,31 @@ void Node3DEditor::_rebuild_perspective_menu() {
 		const Ref<Texture2D> icon = src->get_item_icon(i);
 		const Ref<Shortcut> sc = src->get_item_shortcut(i);
 		PopupMenu *submenu = src->get_item_submenu_node(i);
+		// PopupMenu::add_* return void in this version; index the item after adding.
 		int idx = -1;
 		if (submenu != nullptr) {
-			idx = dst->add_submenu_node_item(text, submenu, id);
+			dst->add_submenu_node_item(text, submenu, id);
+			idx = dst->get_item_count() - 1;
 		} else if (sc.is_valid()) {
 			if (src->is_item_radio_checkable(i)) {
-				idx = dst->add_radio_check_shortcut(sc, id);
+				dst->add_radio_check_shortcut(sc, id);
 			} else if (src->is_item_checkable(i)) {
-				idx = dst->add_check_shortcut(sc, id);
+				dst->add_check_shortcut(sc, id);
 			} else {
-				idx = dst->add_shortcut(sc, id);
+				dst->add_shortcut(sc, id);
 			}
+			idx = dst->get_item_count() - 1;
 		} else {
 			if (src->is_item_radio_checkable(i)) {
-				idx = dst->add_radio_check_item(text, id);
+				dst->add_radio_check_item(text, id);
 			} else if (src->is_item_checkable(i)) {
-				idx = dst->add_check_item(text, id);
+				dst->add_check_item(text, id);
 			} else {
-				idx = dst->add_item(text, id, icon);
+				dst->add_item(text, id);
+			}
+			idx = dst->get_item_count() - 1;
+			if (icon.is_valid()) {
+				dst->set_item_icon(idx, icon);
 			}
 		}
 		if (idx >= 0) {
